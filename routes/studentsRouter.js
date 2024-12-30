@@ -13,7 +13,12 @@ router.route('/')
     .post(authorizePermission('handle_students'), upload.single('image'), (req, res, next) => cloudinaryImageUploader(req, res, next, 'admin_passport') ,createStudent)
 router.route('/:id')
     .delete(authorizePermission('delete_operations'), deleteStudent)
-    .patch(authorizePermission('handle_registrars') , updateStudent)
+    .patch(authorizePermission('handle_students'), upload.single('image'), (req, res, next) => {
+        if(req.file) {
+            cloudinaryImageUploader(req, res, next, 'admin_passport')
+        }
+        next()
+    }, updateStudent)
 
     export default router;
 

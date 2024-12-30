@@ -149,6 +149,26 @@ catch(err) {
 }
 }
 
+export const updateStudent = async (req, res) => {
+    if (req.file) {
+        const uploadedImage = req.uploadedImage;
+        const { secure_url } = uploadedImage;
+    }
+
+    const { permissions } = req.user;
+
+    console.log(permissions);
+
+    const { id } = req.params;
+    const registrar = await Registrar.findById({ _id: id });
+    if (!registrar) return next(new NotFoundError('There is no registrar with id: ' + id));
+
+
+
+    const updatedRegistrar = await Registrar.findByIdAndUpdate({ _id: id }, { ...req.body, passport: secure_url }, { new: true, runValidators: true });
+    if (!updatedStudent) return next(new Error('An Error occured while trying to update registra'))
+    res.status(StatusCodes.OK).json({ updatedRegistrar: updatedRegistrar });
+}
 
 
 
