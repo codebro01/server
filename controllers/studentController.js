@@ -45,6 +45,7 @@ export const createStudent = async (req, res) => {
     }
     const { secure_url } = uploadedImage;
     const { userID } = req.user;
+    // const optional = req.body.ward || "others"
     const student = new Student({ ...req.body, createdBy: userID, passport: secure_url })
     await student.save();
 
@@ -69,7 +70,7 @@ export const deleteStudent = async (req, res, next) => {
 
 
 export const updateStudent = async (req, res) => {
-    if(req.file) {
+    if (req.file) {
         const uploadedImage = req.uploadedImage;
         const { secure_url } = uploadedImage;
     }
@@ -93,10 +94,10 @@ export const updateStudent = async (req, res) => {
             const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body }, { new: true, runValidators: true });
             if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
             return res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
- 
+
         }
 
-       return res.status(StatusCodes.BAD_REQUEST).json({ message: "students can only be updated after first 5 hours of registration" });
+        return res.status(StatusCodes.BAD_REQUEST).json({ message: "Students can only be updated after first 5 hours of registration" });
 
     }
 

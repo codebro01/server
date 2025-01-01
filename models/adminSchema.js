@@ -9,7 +9,7 @@ export const AdminSchema = new Schema({
         required: [true, 'lastname is required'],
     },
     lastname: {
-        type: String, 
+        type: String,
         required: [true, 'lastname is required'],
     },
     email: {
@@ -50,14 +50,14 @@ export const AdminSchema = new Schema({
 
 
 AdminSchema.pre('save', async function (next) {
-    if(!this.isModified('password')) return next()
+    if (!this.isModified('password')) return next()
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt)
 
     next();
 })
 
-AdminSchema.methods.comparePWD = async function(inputedPassword) {
+AdminSchema.methods.comparePWD = async function (inputedPassword) {
     const compare = bcrypt.compare(inputedPassword, this.password);
     return compare;
 }

@@ -10,7 +10,7 @@ import { authMiddleware, authorizePermission } from './middlewares/authenticatio
 import session from 'express-session';
 import cors from 'cors';
 import XLSX from 'xlsx';
-import mongoose from 'mongoose'; 
+import mongoose from 'mongoose';
 import { KogiLga } from './models/LgaSchema.js';
 import { PrimarySchools } from './models/schoolsSchema.js';
 import sanitizeHtml from 'sanitize-html';
@@ -61,14 +61,14 @@ app.use(
 
 app.get('/api/v1', async (req, res) => {
     const wards = await Wards.find({});
-        console.log(wards)
+    console.log(wards)
     res.send(wards)
 })
-app.use('/api/v1/admin-admin',  adminAuthRouter )
-app.use('/api/v1/admin-enumerator',  registrarAuthRouter )
-app.use('/api/v1/student', authMiddleware, studentsRouter )
-app.use('/api/v1/all-schools', allSchoolsRouter )
-app.use('/api/v1/wards', wards )
+app.use('/api/v1/admin-admin', adminAuthRouter)
+app.use('/api/v1/admin-enumerator', registrarAuthRouter)
+app.use('/api/v1/student', authMiddleware, studentsRouter)
+app.use('/api/v1/all-schools', allSchoolsRouter)
+app.use('/api/v1/wards', wards)
 
 const PORT = process.env.PORT || 3100;
 
@@ -78,43 +78,43 @@ app.use(customErrorHandler);
 
 async function processExcelData() {
 
-        
 
- try {
 
-     // Step 1: Read the Excel file
-     const workbook = XLSX.readFile('./files/wards.xlsx');
+    try {
 
-     // Step 2: Extract sheet names and ward data
-     const workSheetsFromFile = workbook.SheetNames.map((sheetName) => {
-         const sheet = workbook.Sheets[sheetName];
-         const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); // Get data as an array of arrays
+        // Step 1: Read the Excel file
+        const workbook = XLSX.readFile('./files/wards.xlsx');
 
-         // Assuming the ward names are in the first column (index 0)
-         const wards = sheetData.map(row => row[0]);
+        // Step 2: Extract sheet names and ward data
+        const workSheetsFromFile = workbook.SheetNames.map((sheetName) => {
+            const sheet = workbook.Sheets[sheetName];
+            const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); // Get data as an array of arrays
 
-         return { sheetName, wards };
-     });
-    await Wards.deleteMany({});
-     // Step 3: Save each sheet's ward data to MongoDB
-     for (const sheet of workSheetsFromFile) {
-         const wards = sheet.wards;
+            // Assuming the ward names are in the first column (index 0)
+            const wards = sheetData.map(row => row[0]);
 
-         // Create and save the ward documents to MongoDB
-         for (const wardName of wards) {
-             const ward = new Wards({
-                 name: wardName,
-             });
-            console.log(wardName)
-             await ward.save();
-             console.log(`Ward '${wardName}' saved successfully.`);
-         }
-     }
+            return { sheetName, wards };
+        });
+        await Wards.deleteMany({});
+        // Step 3: Save each sheet's ward data to MongoDB
+        for (const sheet of workSheetsFromFile) {
+            const wards = sheet.wards;
 
-     console.log('All wards uploaded successfully!')
-} catch (error) {
-  console.error('Error processing data:', error);
-}
+            // Create and save the ward documents to MongoDB
+            for (const wardName of wards) {
+                const ward = new Wards({
+                    name: wardName,
+                });
+                console.log(wardName)
+                await ward.save();
+                console.log(`Ward '${wardName}' saved successfully.`);
+            }
+        }
+
+        console.log('All wards uploaded successfully!')
+    } catch (error) {
+        console.error('Error processing data:', error);
+    }
     // const cleanText = (text) => {
     //     if (typeof text === 'string') {
     //         return sanitizeHtml(text, {
@@ -124,50 +124,50 @@ async function processExcelData() {
     //     }
     //     return text; // Return as-is if not a string
     // };
-// try {
-//   // Read the Excel file
-//   const workbook = XLSX.readFile('./files/primary2.xlsx');
+    // try {
+    //   // Read the Excel file
+    //   const workbook = XLSX.readFile('./files/primary2.xlsx');
 
 
-//     // Access the first sheet
-//     const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    //     // Access the first sheet
+    //     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-//     // Parse the sheet data into JSON format, treating the first row as headers
-//     const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    //     // Parse the sheet data into JSON format, treating the first row as headers
+    //     const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-//     // Extract headers from the first row
-//     const [headers, ...rows] = data;
+    //     // Extract headers from the first row
+    //     const [headers, ...rows] = data;
 
-//     // Map each row into an object using the headers
-//     const mappedData = rows.map(row =>
-//         headers.reduce((acc, header, index) => {
-//             acc[header] = row[index];
-//             return acc;
-//         }, {})
-//     );
-//     // Iterate over the mapped data and process it
-//     for (let index = 0; index < mappedData.length; index++) {
-//         const record = mappedData[index];
+    //     // Map each row into an object using the headers
+    //     const mappedData = rows.map(row =>
+    //         headers.reduce((acc, header, index) => {
+    //             acc[header] = row[index];
+    //             return acc;
+    //         }, {})
+    //     );
+    //     // Iterate over the mapped data and process it
+    //     for (let index = 0; index < mappedData.length; index++) {
+    //         const record = mappedData[index];
 
-//         const schoolData = {
-//             schoolCode: cleanText(record['schoolCode']),    // Directly use the header key
-//             schoolName: cleanText(record['schoolName']),    // Directly use the header key
-//             schoolType: cleanText(record['schoolType']),    // Directly use the header key
-//             LGA: cleanText(record['LGA']),                  // Directly use the header key
-//             schoolCategory: cleanText(record['schoolCategory']) // Directly use the header key
-//         };
+    //         const schoolData = {
+    //             schoolCode: cleanText(record['schoolCode']),    // Directly use the header key
+    //             schoolName: cleanText(record['schoolName']),    // Directly use the header key
+    //             schoolType: cleanText(record['schoolType']),    // Directly use the header key
+    //             LGA: cleanText(record['LGA']),                  // Directly use the header key
+    //             schoolCategory: cleanText(record['schoolCategory']) // Directly use the header key
+    //         };
 
-//         // Save the data to the database
-//         const newSchool = new PrimarySchools(schoolData);
-//         // console.log(newSchool)
-//         await newSchool.save();
+    //         // Save the data to the database
+    //         const newSchool = new PrimarySchools(schoolData);
+    //         // console.log(newSchool)
+    //         await newSchool.save();
 
-//         // Log the index and the school name that was saved
-//         console.log(`Index ${index}: School "${schoolData.schoolName}" saved successfully`);
-//     }
-// } catch (error) {
-//   console.error('Error processing data:', error);
-// }
+    //         // Log the index and the school name that was saved
+    //         console.log(`Index ${index}: School "${schoolData.schoolName}" saved successfully`);
+    //     }
+    // } catch (error) {
+    //   console.error('Error processing data:', error);
+    // }
 
 
 
@@ -181,7 +181,7 @@ const startDB = async () => {
         })
 
         // processExcelData();
-        
+
     }
     catch (err) {
         console.error('An error occured connecting to the DB')
