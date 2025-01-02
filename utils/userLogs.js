@@ -6,7 +6,7 @@ export const addLogToUser = async (Model, userId, action, ip = null, metadata = 
     }
 
     // Add a new log entry to the user's logs array
-    user.logs.push({ action, ip, metadata });
+    user.addLog({ action, ip, metadata });
     await user.save();
 
     console.log('Log added successfully');

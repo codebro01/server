@@ -1,6 +1,13 @@
 import 'dotenv/config'
 import 'express-async-error';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import xssClean from 'xss-clean';
+import mongoSanitize from 'express-mongo-sanitize';
+import csurf from 'csurf';
+import morgan from 'morgan';
+import enforceSSL from 'express-enforces-ssl';
 import { connectDB } from './db/connectDB.js';
 import { notFound } from './middlewares/notFoundMiddleware.js';
 import { customErrorHandler } from './middlewares/errorMiddleware.js';
@@ -11,53 +18,58 @@ import session from 'express-session';
 import cors from 'cors';
 import XLSX from 'xlsx';
 import mongoose from 'mongoose';
-import { KogiLga } from './models/LgaSchema.js';
-import { PrimarySchools } from './models/schoolsSchema.js';
+import { Registrar } from './models/registrarSchema.js';
 import sanitizeHtml from 'sanitize-html';
-import { Wards } from './models/LgaSchema.js';
 import { wards } from './routes/index.js';
-
-
+import { Roles } from './models/rolesSchema.js';
+import { generateRandomId } from './utils/generateRandomId.js';
 const app = express();
 
+
+
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: "Too many requests, please try again later.",
+    headers: true,
+});
+
+// app.use(helmet());
+
 const allowedOrigin = ['http://localhost:3000'];
-
-
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin || allowedOrigin.includes(origin)) {
-            callback(null, true)
-        }
-        else {
-            callback(new Error('Not allowed by CORS......'))
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'], // Ensure these headers are allowed
-}))
-
-
+}));
 
 
 app.use(cookieParser(process.env.JWT_SECRET));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ limit: '10kb', extended: true }));
+app.use(session({
+    secret: process.env.JWT_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Set 'secure' in production
+        maxAge: 1000 * 60 * 60 * 24, // 1 day
+        sameSite: 'Lax', // Prevent CSRF
+    },
+}));
 
-app.use(
-    session({
-        secret: process.env.JWT_SECRET, // Replace with a strong, secure key
-        resave: false, // Prevents saving session if it wasn't modified
-        saveUninitialized: false, // Only save sessions that have data
-        cookie: {
-            httpOnly: true, // Helps prevent XSS attacks
-            secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
-            maxAge: 1000 * 60 * 60 * 24, // 1 day expiration
-            sameSite: 'Lax', // Adjust based on your needs (None, Lax, Strict)
-        },
-    })
-)
 
+//Routes 
 
 app.get('/api/v1', async (req, res) => {
     const wards = await Wards.find({});
@@ -80,41 +92,7 @@ async function processExcelData() {
 
 
 
-    try {
 
-        // Step 1: Read the Excel file
-        const workbook = XLSX.readFile('./files/wards.xlsx');
-
-        // Step 2: Extract sheet names and ward data
-        const workSheetsFromFile = workbook.SheetNames.map((sheetName) => {
-            const sheet = workbook.Sheets[sheetName];
-            const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); // Get data as an array of arrays
-
-            // Assuming the ward names are in the first column (index 0)
-            const wards = sheetData.map(row => row[0]);
-
-            return { sheetName, wards };
-        });
-        await Wards.deleteMany({});
-        // Step 3: Save each sheet's ward data to MongoDB
-        for (const sheet of workSheetsFromFile) {
-            const wards = sheet.wards;
-
-            // Create and save the ward documents to MongoDB
-            for (const wardName of wards) {
-                const ward = new Wards({
-                    name: wardName,
-                });
-                console.log(wardName)
-                await ward.save();
-                console.log(`Ward '${wardName}' saved successfully.`);
-            }
-        }
-
-        console.log('All wards uploaded successfully!')
-    } catch (error) {
-        console.error('Error processing data:', error);
-    }
     // const cleanText = (text) => {
     //     if (typeof text === 'string') {
     //         return sanitizeHtml(text, {
@@ -125,48 +103,58 @@ async function processExcelData() {
     //     return text; // Return as-is if not a string
     // };
     // try {
-    //   // Read the Excel file
-    //   const workbook = XLSX.readFile('./files/primary2.xlsx');
+    //     // Read the Excel file
+    //     const workbook = XLSX.readFile('./files/KOGI AGILE LGA ENUMERATORS LIST-2.xlsx');
 
-
-    //     // Access the first sheet
     //     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
-    //     // Parse the sheet data into JSON format, treating the first row as headers
     //     const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-    //     // Extract headers from the first row
     //     const [headers, ...rows] = data;
+    //     const trimmedHeaders = headers.map(header => header.trim());
+    //     const registrarRole = await Roles.findOne({ role: 'registrar' });
 
-    //     // Map each row into an object using the headers
     //     const mappedData = rows.map(row =>
-    //         headers.reduce((acc, header, index) => {
+    //         trimmedHeaders.reduce((acc, header, index) => {
     //             acc[header] = row[index];
     //             return acc;
     //         }, {})
     //     );
-    //     // Iterate over the mapped data and process it
+    //     const registrarStore = [];
     //     for (let index = 0; index < mappedData.length; index++) {
     //         const record = mappedData[index];
+    //         const generatedRandomId = generateRandomId();
 
-    //         const schoolData = {
-    //             schoolCode: cleanText(record['schoolCode']),    // Directly use the header key
-    //             schoolName: cleanText(record['schoolName']),    // Directly use the header key
-    //             schoolType: cleanText(record['schoolType']),    // Directly use the header key
-    //             LGA: cleanText(record['LGA']),                  // Directly use the header key
-    //             schoolCategory: cleanText(record['schoolCategory']) // Directly use the header key
+    //         const registrarData = {
+    //             fullName: cleanText(record['fullName']),
+    //             lga: cleanText(record['lga']),
+    //             email: cleanText(record['email']),
+    //             accountNumber: cleanText(record['accountNumber']),
+    //             bankName: cleanText(record['bankName']),
+    //             password: "123456",
+    //             permissions: [registrarRole.permissions],
+    //             roles: [registrarRole._id],
+    //             passport: "https://res.cloudinary.com/dadzk0ffu/image/upload/v1735440797/admin_passport/kw0eqyvn4fzamhkkjsoy.png",
+    //             randomId: generatedRandomId,
+    //             phone: `+123456789${Math.floor(1000 + Math.random() * 9000)}`
     //         };
 
-    //         // Save the data to the database
-    //         const newSchool = new PrimarySchools(schoolData);
-    //         // console.log(newSchool)
-    //         await newSchool.save();
+    //         await Registrar.deleteMany({});
 
+
+    //         registrarStore.push(registrarData);
     //         // Log the index and the school name that was saved
-    //         console.log(`Index ${index}: School "${schoolData.schoolName}" saved successfully`);
+    //         console.log(`Index ${index}: Registrar "${registrarData.fullName}" saved successfully`);
     //     }
+
+    //     for(const singleRegistrar of registrarStore) {
+    //         const newRegistrar = new Registrar(singleRegistrar);
+    //         await newRegistrar.save();
+    //     }
+
+    //     console.log('registrar all saved')
+
     // } catch (error) {
-    //   console.error('Error processing data:', error);
+    //     console.error('Error processing data:', error);
     // }
 
 
@@ -179,6 +167,8 @@ const startDB = async () => {
         app.listen(PORT, () => {
             console.log('app connected to port:' + PORT)
         })
+
+
 
         // processExcelData();
 

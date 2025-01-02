@@ -5,15 +5,15 @@ const StudentSchema = new mongoose.Schema({
     schoolId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "AllSchools",
-        required: true
+        required: [true, "School cannot be empty"]
     },
     surname: {
         type: String,
-        required: true
+        required: [true, "Surname cannot be empty"]
     },
     studentNin: {
         type: String,
-        required: true,
+        required: [true, "Student NIN is required"]
     },
     ward: {
         type: mongoose.Schema.Types.ObjectId,
@@ -21,7 +21,8 @@ const StudentSchema = new mongoose.Schema({
     },
     otherNames: {
         type: String,
-        required: true
+        required: [true, "Please fill other names"]
+        
     },
     gender: {
         type: String,       // Set the default value
@@ -29,11 +30,12 @@ const StudentSchema = new mongoose.Schema({
     },
     dob: {
         type: String,
-        required: true
+        required: [true, "Date of birth is required"]
+        
     },
     nationality: {
         type: String,
-        required: true
+        required: [true, "Nationality cannot be empty"]
     },
     stateOfOrigin: {
         type: String,
@@ -43,50 +45,50 @@ const StudentSchema = new mongoose.Schema({
     },
     communityName: {
         type: String,
-        required: true
+        required: [true, "Community name is required"]
     },
     residentialAddress: {
         type: String,
-        required: true
+        required: [true, "Residential address cannot be empty"]
     },
     presentClass: {
         type: String,
-        required: true
+        required: [true, "Please select present class"]
     },
     yearAdmitted: {
         type: String,
-        required: true
+        required: [true, "Please select Year admitted"]
     },
     classAtAdmission: {
         type: String,
-        required: true
+        required: [true, "Please select class at Admission"]
     },
     guardianContact: {
         type: String,
     },
     guardianOccupation: {
         type: String,
-        required: true
+        required: [true, "Please select guardian occupation"]
     },
     guardianPhone: {
         type: String,
-        required: true,
+        required: [true, "Guardian phone number cannot be empty"]
     },
     guardianName: {
         type: String,
-        required: true,
+        required: [true, "Guardian name cannot be empty"]
     },
     guardianNin: {
         type: String,
-        required: true,
+        required: [true, "Guardian NIN cannot be empty"]
     },
     bankName: {
         type: String,
-        required: true
+        required: [true, "Bank name is required"]
     },
     accountNumber: {
         type: String,
-        required: true
+        required: [true, "Account Number is required"]
     },
     passport: {
         type: String,

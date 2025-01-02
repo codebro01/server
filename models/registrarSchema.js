@@ -1,5 +1,5 @@
-import {logSchema} from './index.js';
-import {Schema, model} from 'mongoose';
+import { logSchema } from './index.js';
+import { Schema, model } from 'mongoose';
 import bcrypt from "bcryptjs";
 
 
@@ -18,41 +18,49 @@ const RegistrarSchema = new Schema({
     },
 
 
-    firstname: {
+    fullName: {
         type: String,
-        required: [true, 'Firstname is required'],
-        trim: true,
+        required: [true, 'Full name is required'],
         lowercase: true,
         unique: false
     },
-    lastname: {
+    lga: {
         type: String,
-        required: [true, 'lastname is required'],
-        trim: true,
+        required: [true, 'lga is required'],
         lowercase: true,
         unique: false
     },
     gender: {
         type: String,
-        enum: ['Male', 'Female', 'Other'],
-        required: [true, 'Gender is required'],
+        enum: ['Male', 'Female', 'Others'],
+        // required: [true, 'Gender is required'],
     },
     phone: {
         type: String,
-        required: [true, 'Phone number is required'],
-        unique: true,
+        // required: [true, 'Phone number is required'],
+        // unique: true,
     },
     passport: {
         type: String,
     },
     address: {
         type: String,
-        required: [true, 'Address is required'],
+        // required: [true, 'Address is required'],
     },
-    bank: {
+    bankName: {
         type: String,
-        required: [true, 'Bank is required'],
+        required: [true, 'Bank name is required'],
     },
+    // bvn:{
+    //     type:String, 
+    //     required:[true, 'Bvn is required'], 
+    //     unique: true,
+    // }, 
+    // nin:{
+    //     type:String, 
+    //     required:[true, 'Nin is required'], 
+    //     unique: true,
+    // }, 
     accountNumber: {
         type: Number,
         required: [true, 'Account Number is required'],
@@ -63,7 +71,7 @@ const RegistrarSchema = new Schema({
         enum: ['Active', 'Suspended'],
         default: 'Active',
     },
-     randomId: {
+    randomId: {
         type: Number,
     },
     lastLogged: {
@@ -76,7 +84,7 @@ const RegistrarSchema = new Schema({
     }],
 
     logs: [logSchema],
-    
+
     permissions: [],
 
     other: {
@@ -85,14 +93,20 @@ const RegistrarSchema = new Schema({
 });
 
 RegistrarSchema.pre('save', async function (next) {
-    if(!this.isModified('password')) return next()
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt)
+    if (!this.isNew && !this.isModified('password')) return next();
 
+    if (this.isModified('password')) {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        console.log('Hashed Password:', this.password);
+    }
     next();
-})
+});
 
-RegistrarSchema.methods.comparePWD = async function(inputedPassword) {
+
+
+
+RegistrarSchema.methods.comparePWD = async function (inputedPassword) {
     const compare = bcrypt.compare(inputedPassword, this.password);
     return compare;
 }
@@ -111,4 +125,11 @@ RegistrarSchema.methods.updateLastLogged = function () {
     return this.save();
 };
 
-export const Registrar =  model('Registrars', RegistrarSchema);
+RegistrarSchema.methods.addLog = async function (log) {
+    this.logs.push(log);
+    if (this.logs.length > 5) {
+        this.logs.shift(); // Remove the oldest log
+    }
+};
+
+export const Registrar = model('Registrars', RegistrarSchema);
