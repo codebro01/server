@@ -4,14 +4,14 @@ import bcrypt from 'bcryptjs';
 
 
 export const AdminSchema = new Schema({
-    firstname: {
+    fullName: {
         type: String,
         required: [true, 'lastname is required'],
     },
-    lastname: {
-        type: String,
-        required: [true, 'lastname is required'],
-    },
+    // lastname: {
+    //     type: String,
+    //     required: [true, 'lastname is required'],
+    // },
     email: {
         type: String,
         required: [true, 'Email is required'],

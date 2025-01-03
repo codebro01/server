@@ -36,8 +36,8 @@ export const authMiddleware = async (req, res, next) => {
 
         const permissionsArray = admin.roles.flatMap(role => role.permissions.map(permission => permission.name));
         admin.permissions = permissionsArray;
-            const { firstname, lastname, email, permissions, userID: _id } = admin;
-            req.user = { firstname, lastname, email, permissions, userID };
+            const { fullName, lastname, email, permissions, userID: _id } = admin;
+            req.user = { fullName, email, permissions, userID };
         }
         if(registrar) {
             const permissionsArray = registrar.roles.flatMap(role => role.permissions.map(permission => permission.name));

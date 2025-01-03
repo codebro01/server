@@ -18,8 +18,8 @@ router.route('/:id')
             cloudinaryImageUploader(req, res, next, 'admin_passport')
         }
         next()
-    }, updateStudent)
-
+    }, updateStudent);
+router.get('/download', authorizePermission('handle_admins'), getAllStudents)
     export default router;
 
 

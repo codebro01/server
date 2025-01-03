@@ -9,7 +9,9 @@ router.post('/register', authMiddleware, authorizePermission('handle_registrars'
     (req, res, next) => cloudinaryImageUploader(req, res, next, 'registrar_passport'), createRegistrar)
 router.route('/login')
     .post(loginRegistrar)
-router.get('/', getAllRegistrars);
+router.get('/', authMiddleware, authorizePermission('handle_registrars'), getAllRegistrars);
+router.get('/', authMiddleware, authorizePermission('handle_registrars'), getAllRegistrars);
+
 router.patch('/change-password', authMiddleware, changeRegistrarPassword);
 router.patch('/reset-password', authMiddleware, authorizePermission('handle_registrars'), resetRegistrarPassword)
 export default router;

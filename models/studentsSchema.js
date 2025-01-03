@@ -55,6 +55,15 @@ const StudentSchema = new mongoose.Schema({
         type: String,
         required: [true, "Please select present class"]
     },
+    // ! two new fields below, must fix before lauching today
+    classAtEnrollment: {
+        type: String,
+        required: [true, "Please select class at enrollment"]
+    },
+    yearOfErollment: {
+        type: String,
+        required: [true, "Please select class at enrollment"]
+    },
     yearAdmitted: {
         type: String,
         required: [true, "Please select Year admitted"]
@@ -103,6 +112,9 @@ const StudentSchema = new mongoose.Schema({
 
 
 }, { timestamps: true });
+
+StudentSchema.index({ ward: 1, lga: 1, presentClass: 1 });
+
 
 StudentSchema.pre('save', function (next) {
     if (this.isModified('lastLogged')) {
