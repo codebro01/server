@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllStudents, updateStudent, deleteStudent, createStudent } from '../controllers/studentController.js';
+import { getAllStudents, filterAndDownload, updateStudent, deleteStudent, createStudent } from '../controllers/studentController.js';
 import { authorizePermission } from '../middlewares/authenticationMiddleware.js';
 import { upload } from '../config/multer.js';
 import { cloudinaryImageUploader } from '../utils/cloudinaryImageUploader.js';
@@ -19,7 +19,7 @@ router.route('/:id')
         }
         next()
     }, updateStudent);
-router.get('/download', authorizePermission('handle_admins'), getAllStudents)
+router.get('/download', authorizePermission('handle_admins'), filterAndDownload)
     export default router;
 
 

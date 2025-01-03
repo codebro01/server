@@ -5,6 +5,9 @@ import { addLogToUser } from "../utils/index.js";
 import XLSX from 'xlsx';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import path from 'path';
+import fs from 'fs';
+
 
 
 
@@ -19,7 +22,7 @@ export const getAllStudents = async (req, res, next) => {
         await Student.syncIndexes();
 
         const { userID, permissions } = req.user;
-        // if(!userID) return next(new NotAuthenticatedError('Not authorized to get students'));
+        //  if(!userID) return next(new NotAuthenticatedError('Not authorized to get students'));
 
         const { ward, schoolId, lga, presentClass, sortBy, sortOrder, nationality, state, enumerator, dateFrom, dateTo, year, yearOfAdmission, classAtEnrollment, yearOfEnrollment } = req.query;
 
@@ -61,11 +64,65 @@ export const getAllStudents = async (req, res, next) => {
 
         const students = await Student.find(basket).populate('schoolId').populate('ward').sort(sort).collation({ locale: "en", strength: 2 }).lean();
 
-        if (req.path === '/student') {
-            res.status(StatusCodes.OK).json({ students, totalStudents: students.length });
+    
+           return  res.status(StatusCodes.OK).json({ students, totalStudents: students.length });
+    }
+    catch (err) {
+        console.log(err)
+    }
+}
+
+export const filterAndDownload = async (req, res, next) => {
+    console.log(req.url)
+    try {
+        await Student.syncIndexes();
+
+        const { userID, permissions } = req.user;
+        //  if(!userID) return next(new NotAuthenticatedError('Not authorized to get students'));
+
+        const { ward, schoolId, lga, presentClass, sortBy, sortOrder, nationality, state, enumerator, dateFrom, dateTo, year, yearOfAdmission, classAtEnrollment, yearOfEnrollment } = req.query;
+
+        // Create a basket object
+        const { } = req.user
+        let basket;
+
+        if (!permissions.includes('handle_registrars')) {
+            basket = { createdBy: userID };
+        } else {
+            basket = {};
+        }
+        if (lga) basket.lga = lga;
+        if (presentClass) basket.presentClass = presentClass;
+        if (classAtEnrollment) basket.classAtEnrollment = classAtEnrollment;
+        if (yearOfEnrollment) basket.yearOfEnrollment = yearOfEnrollment;
+        if (ward) basket.ward = ward;
+        if (schoolId) basket.schoolId = schoolId;
+        if (nationality) basket.nationality = nationality;
+        if (state) basket.stateOfOrigin = state;
+        if (enumerator) basket.createdBy = enumerator;
+        if (dateFrom || dateTo) {
+            basket.createdAt = {};
+            if (dateFrom) basket.createdAt.$gte = new Date(dateFrom);
+            if (dateTo) basket.createdAt.$lte = new Date(dateTo);
+        }
+        if (year) basket.year = year;
+        if (yearOfAdmission) basket.yearAdmitted = yearOfAdmission;
+
+
+
+        let sort = { createdAt: -1 }; // Default sort
+
+        if (sortBy && sortOrder) {
+            sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
         }
 
-        else if (req.path === '/student/download') {
+
+
+        const students = await Student.find(basket).populate('schoolId').populate('ward').populate('createdBy').sort(sort).collation({ locale: "en", strength: 2 }).lean();
+
+      
+
+            console.log('in here')
             if (!students.length) {
                 return next(new NotFoundError("No students with the filtered data provided"))
             };
@@ -75,13 +132,25 @@ export const getAllStudents = async (req, res, next) => {
                 Object.keys(student).forEach(key => allKeys.add(key));
             });
 
+
             const headers = Array.from(allKeys);
 
             const formattedData = students.map(student => {
                 const row = {};
                 headers.forEach(header => {
-                    row[header] = student[header] || '';
-                });
+                    // Populate fields like _id, schoolId, ward, createdBy with actual readable data
+                    if (header === '_id') {
+                        row[header] = student._id.toString(); // Ensure _id is a string
+                    } else if (header === 'ward' && student[header]) {
+                        row[header] = student[header].name || ''; // Assuming 'name' is a field in the 'ward' collection
+                    } else if (header === 'createdBy' && student[header]) {
+                        row[header] = student[header].randomId || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                    } else if (student[header] && header === 'schoolId') {
+                        row[header] = student[header].schoolName || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                    } else {
+                        row[header] = student[header] || ''; // Handle regular fields
+                    }
+                })
                 return row;
             })
 
@@ -96,24 +165,18 @@ export const getAllStudents = async (req, res, next) => {
             const filePath = path.join(__dirname, 'students.xlsx');
             XLSX.writeFile(workbook, filePath);
 
-            res.download(filePath, 'students.xlsx', err => {
+            return res.download(filePath, 'students.xlsx', err => {
                 if (err) throw err;
 
                 // Clean up after download
                 fs.unlinkSync(filePath);
             });
-        }
-
-
-
-
-
+        
     }
     catch (err) {
         console.log(err)
     }
 }
-
 
 
 export const createStudent = async (req, res) => {
