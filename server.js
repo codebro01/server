@@ -38,6 +38,9 @@ const limiter = rateLimit({
 
 // app.use(helmet());
 
+app.options('*', cors()); // Preflight requests
+
+
 const allowedOrigin = ['http://localhost:3000', 'https://server-g10x.onrender.com', 'https://calm-stardust-05aabe.netlify.app', 'https://kogi-agile-app-vite.vercel.app', 'https://server-nu-khaki-78.vercel.app'];
 app.use(cors({
     origin: (origin, callback) => {
