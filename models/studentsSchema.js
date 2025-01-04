@@ -17,7 +17,7 @@ const StudentSchema = new mongoose.Schema({
     },
     ward: {
         type: String,
-
+        required: [true, "Ward is required"]
     },
     otherNames: {
         type: String,
@@ -60,18 +60,18 @@ const StudentSchema = new mongoose.Schema({
         required: [true, "Please select present class"]
     },
     // ! two new fields below, must fix before lauching today
-    classAtEnrollment: {
-        type: String,
-        required: [true, "Please select class at enrollment"]
-    },
+    // classAtEnrollment: {
+    //     type: String,
+    //     required: [true, "Please select class at enrollment"]
+    // },
     yearOfErollment: {
         type: String,
         required: [true, "Please select year at enrollment"]
     },
-    yearAdmitted: {
-        type: String,
-        required: [true, "Please select Year admitted"]
-    },
+    // yearAdmitted: {
+    //     type: String,
+    //     required: [true, "Please select Year admitted"]
+    // },
 
     parentContact: {
         type: String,
@@ -94,11 +94,9 @@ const StudentSchema = new mongoose.Schema({
     },
     bankName: {
         type: String,
-        required: [true, "Bank name is required"]
     },
     accountNumber: {
         type: String,
-        required: [true, "Account Number is required"]
     },
     passport: {
         type: String,
