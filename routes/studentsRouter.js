@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllStudents, filterAndDownload, updateStudent, deleteStudent, createStudent } from '../controllers/studentController.js';
+import { getAllStudents, filterAndDownload, updateStudent, deleteStudent, createStudent, downloadAttendanceSheet } from '../controllers/studentController.js';
 import { authorizePermission } from '../middlewares/authenticationMiddleware.js';
 import { upload } from '../config/multer.js';
 import { cloudinaryImageUploader } from '../utils/cloudinaryImageUploader.js';
@@ -14,12 +14,14 @@ router.route('/')
 router.route('/:id')
     .delete(authorizePermission('delete_operations'), deleteStudent)
     .patch(authorizePermission('handle_students'), upload.single('image'), (req, res, next) => {
+        console.log(req.file)
         if(req.file) {
             cloudinaryImageUploader(req, res, next, 'admin_passport')
         }
         next()
     }, updateStudent);
 router.get('/download', authorizePermission('handle_admins'), filterAndDownload)
+router.get('/attendance-sheet', authorizePermission('handle_students'), downloadAttendanceSheet)
     export default router;
 
 

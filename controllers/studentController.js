@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
 import fs from 'fs';
+import { Readable } from 'stream';
 
 
 
@@ -64,8 +65,8 @@ export const getAllStudents = async (req, res, next) => {
 
         const students = await Student.find(basket).populate('schoolId').populate('ward').sort(sort).collation({ locale: "en", strength: 2 }).lean();
 
-    
-           return  res.status(StatusCodes.OK).json({ students, totalStudents: students.length });
+
+        return res.status(StatusCodes.OK).json({ students, totalStudents: students.length });
     }
     catch (err) {
         console.log(err)
@@ -73,19 +74,15 @@ export const getAllStudents = async (req, res, next) => {
 }
 
 export const filterAndDownload = async (req, res, next) => {
-    console.log(req.url)
     try {
         await Student.syncIndexes();
 
         const { userID, permissions } = req.user;
-        //  if(!userID) return next(new NotAuthenticatedError('Not authorized to get students'));
 
         const { ward, schoolId, lga, presentClass, sortBy, sortOrder, nationality, state, enumerator, dateFrom, dateTo, year, yearOfAdmission, classAtEnrollment, yearOfEnrollment } = req.query;
 
         // Create a basket object
-        const { } = req.user
         let basket;
-
         if (!permissions.includes('handle_registrars')) {
             basket = { createdBy: userID };
         } else {
@@ -108,142 +105,236 @@ export const filterAndDownload = async (req, res, next) => {
         if (year) basket.year = year;
         if (yearOfAdmission) basket.yearAdmitted = yearOfAdmission;
 
-
-
         let sort = { createdAt: -1 }; // Default sort
-
         if (sortBy && sortOrder) {
             sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
         }
 
-
-
         const students = await Student.find(basket).populate('schoolId').populate('ward').populate('createdBy').sort(sort).collation({ locale: "en", strength: 2 }).lean();
 
-      
+        if (!students.length) {
+            return next(new NotFoundError("No students with the filtered data provided"));
+        };
 
-            console.log('in here')
-            if (!students.length) {
-                return next(new NotFoundError("No students with the filtered data provided"))
-            };
+        const allKeys = new Set();
+        students.forEach(student => {
+            Object.keys(student).forEach(key => allKeys.add(key));
+        });
 
-            const allKeys = new Set();
-            students.forEach(student => {
-                Object.keys(student).forEach(key => allKeys.add(key));
+        const headers = Array.from(allKeys);
+
+        const formattedData = students.map(student => {
+            const row = {};
+            headers.forEach(header => {
+                // Populate fields like _id, schoolId, ward, createdBy with actual readable data
+                if (header === '_id') {
+                    row[header] = student._id.toString(); // Ensure _id is a string
+                } else if (header === 'ward' && student[header]) {
+                    row[header] = student[header].name || ''; // Assuming 'name' is a field in the 'ward' collection
+                } else if (header === 'createdBy' && student[header]) {
+                    row[header] = student[header].randomId || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                } else if (student[header] && header === 'schoolId') {
+                    row[header] = student[header].schoolName || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                } else {
+                    row[header] = student[header] || ''; // Handle regular fields
+                }
             });
+            return row;
+        });
 
+        // Create a workbook and worksheet
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
 
-            const headers = Array.from(allKeys);
+        // Append the worksheet to the workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
 
-            const formattedData = students.map(student => {
-                const row = {};
-                headers.forEach(header => {
-                    // Populate fields like _id, schoolId, ward, createdBy with actual readable data
-                    if (header === '_id') {
-                        row[header] = student._id.toString(); // Ensure _id is a string
-                    } else if (header === 'ward' && student[header]) {
-                        row[header] = student[header].name || ''; // Assuming 'name' is a field in the 'ward' collection
-                    } else if (header === 'createdBy' && student[header]) {
-                        row[header] = student[header].randomId || ''; // Assuming 'name' is a field in the 'createdBy' collection
-                    } else if (student[header] && header === 'schoolId') {
-                        row[header] = student[header].schoolName || ''; // Assuming 'name' is a field in the 'createdBy' collection
-                    } else {
-                        row[header] = student[header] || ''; // Handle regular fields
-                    }
-                })
-                return row;
-            })
+        // Create a buffer for the Excel file
+        const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
 
-            // Create a workbook and worksheet
-            const workbook = XLSX.utils.book_new();
-            const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        // Create a readable stream from the buffer
+        const stream = Readable.from(buffer);
 
-            // Append the worksheet to the workbook
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+        // Set headers for file download
+        res.setHeader('Content-Disposition', `attachment; filename=students.xlsx`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-            // Write the workbook to a file
-            const filePath = path.join(__dirname, 'students.xlsx');
-            XLSX.writeFile(workbook, filePath);
+        // Pipe the stream to the response
+        stream.pipe(res);
 
-            return res.download(filePath, 'students.xlsx', err => {
-                if (err) throw err;
+        // Optional: Handle error during streaming
+        stream.on('error', (err) => {
+            console.error('Stream error:', err);
+            res.status(500).send('Error generating file');
+        });
 
-                // Clean up after download
-                fs.unlinkSync(filePath);
-            });
-        
+        // End the response once the stream is finished
+        stream.on('end', () => {
+            console.log('File sent successfully');
+        });
+
+    } catch (err) {
+        next(err);
+        console.log(err);
     }
-    catch (err) {
-        console.log(err)
+};
+
+export const downloadAttendanceSheet = async (req, res, next) => {
+    try {
+        const { userID } = req.user;
+        const filterBasket = { createdBy: userID };
+        const { schoolId } = req.query;
+
+        if (schoolId) filterBasket.schoolId = schoolId;
+
+        const students = await Student.find(filterBasket).populate('schoolId').populate("ward");
+
+        if (!students.length) {
+            return next(new NotFoundError(`We can't find students registered by you in this particular school`));
+        }
+
+        // Prepare data for the sheet
+        const schoolName = students[0]?.schoolId?.schoolName || 'Unknown School';
+        const formattedData = students.map(student => ({
+            StudentId: student._id.toString(),
+            Surname: student.surname || '',
+            'Other Names': student.otherNames || '',
+            Class: student.presentClass || "",
+            'Week 1': '',
+            'Week 2': '',
+            'Week 3': '',
+            'Week 4': '',
+            'Week 5': '',
+        }));
+
+        // Create the sheet with headers
+        const rows = [
+            [schoolName],                // Big header (School Name)
+            [],                         // Blank row for spacing
+            ['StudentId', 'Surname', 'Other Names', 'Class', 'Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'], // Column headers
+            ...formattedData.map(row => Object.values(row)) // Data rows
+        ];
+
+        // Create a workbook and worksheet
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+        // Merge cells for the major header (School Name)
+        worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }]; // Merge A1:D1
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+
+        // Instead of writing the file to disk, we stream the content to the client
+        const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+
+        // Create a readable stream from the buffer
+        const stream = Readable.from(buffer);
+
+        // Set headers for file download
+        res.setHeader('Content-Disposition', `attachment; filename=students.xlsx`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        // Pipe the stream to the response
+        stream.pipe(res);
+
+        // Optional: Handle error during streaming
+        stream.on('error', (err) => {
+            console.error('Stream error:', err);
+            res.status(500).send('Error generating file');
+        });
+
+        // End the response once the stream is finished
+        stream.on('end', () => {
+            console.log('File sent successfully');
+        });
+
+    } catch (error) {
+        next(error);
     }
-}
+};
 
-
-export const createStudent = async (req, res) => {
-    const uploadedImage = req.uploadedImage;
-    if (!uploadedImage) {
-        return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
-    }
-    const { secure_url } = uploadedImage;
-    const { userID } = req.user;
-    // const optional = req.body.ward || "others"
-    const student = new Student({ ...req.body, createdBy: userID, passport: secure_url })
-    await student.save();
-
-    const sessionData = req.session;
-
-    addLogToUser(Registrar, userID, `Enumerator Created student with id: ${student._id}`, req.ip, {
-        sessionId: sessionData.id || 'unknown',
-        sessionCreated: sessionData.cookie._expires,
-        data: sessionData, // Add any relevant session details
-    });
-
-    res.status(StatusCodes.OK).json({ student })
-}
-export const deleteStudent = async (req, res, next) => {
-    const { id } = req.params;
-    const student = await Student.findById({ _id: id });
-    if (!student) return next(new NotFoundError('There is no student with id: ' + id));
-    const deletedStudent = await Student.findByIdAndDelete({ _id: id });
-    if (!deletedStudent) return next(new Error('An Error while trying to delete student'))
-    res.status(StatusCodes.OK).json({ deletedStudent: deletedStudent });
-}
-
-
-export const updateStudent = async (req, res) => {
-    if (req.file) {
+export const createStudent = async (req, res, next) => {
+    try {
         const uploadedImage = req.uploadedImage;
+        if (!uploadedImage) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
+        }
         const { secure_url } = uploadedImage;
+        const { userID } = req.user;
+        // const optional = req.body.ward || "others"
+        const student = new Student({ ...req.body, createdBy: userID, passport: secure_url })
+        await student.save();
+
+        const sessionData = req.session;
+
+        addLogToUser(Registrar, userID, `Enumerator Created student with id: ${student._id}`, req.ip, {
+            sessionId: sessionData.id || 'unknown',
+            sessionCreated: sessionData.cookie._expires,
+            data: sessionData, // Add any relevant session details
+        });
+
+        res.status(StatusCodes.OK).json({ student })
+    } catch (error) {
+        next(err)
     }
-
-    const { permissions } = req.user;
-
-    console.log(permissions);
-
-    const { id } = req.params;
-    const student = await Student.findById({ _id: id });
-    if (!student) return next(new NotFoundError('There is no student with id: ' + id));
+}
 
 
-    if (!permissions.includes('handle_registrars')) {
-        const registrationTime = new Date(student.createdAt);
-        const currentTime = new Date();
 
-        const timeDifference = (currentTime - registrationTime) / (1000 * 60 * 60);
+export const deleteStudent = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const student = await Student.findById({ _id: id });
+        if (!student) return next(new NotFoundError('There is no student with id: ' + id));
+        const deletedStudent = await Student.findByIdAndDelete({ _id: id });
+        if (!deletedStudent) return next(new Error('An Error while trying to delete student'))
+        res.status(StatusCodes.OK).json({ deletedStudent: deletedStudent });
+    } catch (error) {
+        next(error)
+    }
+}
 
-        if (timeDifference < 5) {
-            const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body }, { new: true, runValidators: true });
-            if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
-            return res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
+
+export const updateStudent = async (req, res, next) => {
+    try {
+        if (req.file) {
+            const uploadedImage = req.uploadedImage;
+            const { secure_url } = uploadedImage;
+        }
+        if (!uploadedImage) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
+        }
+
+        const { permissions } = req.user;
+
+
+        const { id } = req.params;
+        const student = await Student.findById({ _id: id });
+        if (!student) return next(new NotFoundError('There is no student with id: ' + id));
+
+
+        if (!permissions.includes('handle_registrars')) {
+            const registrationTime = new Date(student.createdAt);
+            const currentTime = new Date();
+
+            const timeDifference = (currentTime - registrationTime) / (1000 * 60 * 60);
+
+            if (timeDifference < 5) {
+                const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body, passport: secure_url }, { new: true, runValidators: true });
+                if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
+                return res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
+
+            }
+
+            return res.status(StatusCodes.BAD_REQUEST).json({ message: "Students can only be updated after first 5 hours of registration" });
 
         }
 
-        return res.status(StatusCodes.BAD_REQUEST).json({ message: "Students can only be updated after first 5 hours of registration" });
 
+        const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body, passport: secure_url }, { new: true, runValidators: true });
+        if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
+        res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
+    } catch (error) {
+        next(error)
     }
-
-
-    const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body, passport: secure_url }, { new: true, runValidators: true });
-    if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
-    res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
 }
