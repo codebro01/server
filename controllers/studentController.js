@@ -275,7 +275,7 @@ export const createStudent = async (req, res, next) => {
 
         res.status(StatusCodes.OK).json({ student })
     } catch (error) {
-        next(err)
+        next(error)
     }
 }
 
