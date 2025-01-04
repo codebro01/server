@@ -49,7 +49,8 @@ const allowedOrigins = [
     'https://server-g10x.onrender.com',
     'https://calm-stardust-05aabe.netlify.app',
     'https://kogi-agile-app-vite.vercel.app',
-    'https://server-nu-khaki-78.vercel.app'
+    'https://server-nu-khaki-78.vercel.app',
+    'https://miscct.kogiagile.org'
 ];
 
 // CORS middleware
