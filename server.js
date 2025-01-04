@@ -38,7 +38,7 @@ const limiter = rateLimit({
 
 // app.use(helmet());
 
-const allowedOrigin = ['http://localhost:3000', 'https://server-g10x.onrender.com/'];
+const allowedOrigin = ['http://localhost:3000', 'https://server-g10x.onrender.com'];
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin || allowedOrigin.includes(origin)) {
