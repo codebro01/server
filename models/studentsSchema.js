@@ -16,13 +16,13 @@ const StudentSchema = new mongoose.Schema({
         required: [true, "Student NIN is required"]
     },
     ward: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Wards",
+        type: String,
+
     },
     otherNames: {
         type: String,
         required: [true, "Please fill other names"]
-        
+
     },
     gender: {
         type: String,       // Set the default value
@@ -31,7 +31,7 @@ const StudentSchema = new mongoose.Schema({
     dob: {
         type: String,
         required: [true, "Date of birth is required"]
-        
+
     },
     nationality: {
         type: String,
@@ -42,6 +42,10 @@ const StudentSchema = new mongoose.Schema({
     },
     lga: {
         type: String,
+    },
+    lgaOfEnrollment: {
+        type: String,
+        required: true,
     },
     communityName: {
         type: String,
@@ -68,28 +72,25 @@ const StudentSchema = new mongoose.Schema({
         type: String,
         required: [true, "Please select Year admitted"]
     },
-    classAtAdmission: {
-        type: String,
-        required: [true, "Please select class at Admission"]
-    },
-    guardianContact: {
+
+    parentContact: {
         type: String,
     },
-    guardianOccupation: {
+    parentOccupation: {
         type: String,
-        required: [true, "Please select guardian occupation"]
+        required: [true, "Please select Parent/caregiver occupation"]
     },
-    guardianPhone: {
+    parentPhone: {
         type: String,
-        required: [true, "Guardian phone number cannot be empty"]
+        required: [true, "Parent/caregiver phone number cannot be empty"]
     },
-    guardianName: {
+    parentName: {
         type: String,
-        required: [true, "Guardian name cannot be empty"]
+        required: [true, "Parent/caregiver name cannot be empty"]
     },
-    guardianNin: {
+    parentNin: {
         type: String,
-        required: [true, "Guardian NIN cannot be empty"]
+        required: [true, "Parent/caregiver NIN cannot be empty"]
     },
     bankName: {
         type: String,

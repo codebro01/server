@@ -24,6 +24,7 @@ import { wards } from './routes/index.js';
 import { Roles } from './models/rolesSchema.js';
 import { generateRandomId } from './utils/generateRandomId.js';
 const app = express();
+import { KogiLga } from './models/LgaSchema.js';
 
 
 
@@ -101,6 +102,10 @@ app.use(session({
 app.get('/', (req, res) => {
     res.send('Welcome to kogi agile api........')
 })
+app.get('/lgas', async (req, res) => {
+    const kogilgas = await KogiLga.find({});
+    res.json({kogilgas})
+})
 
 // app.get('/api/v1', async (req, res) => {
 //     const wards = await Wards.find({});
@@ -119,7 +124,7 @@ app.use(notFound);
 app.use(customErrorHandler);
 
 
-async function processExcelData() {
+async function processExcelData() { 
 
 
 
@@ -187,6 +192,43 @@ async function processExcelData() {
     // } catch (error) {
     //     console.error('Error processing data:', error);
     // }
+
+
+    try {
+
+        // Step 1: Read the Excel file
+        const workbook = XLSX.readFile('./files/wards.xlsx');
+
+        // Step 2: Extract sheet names and ward data
+        const workSheetsFromFile = workbook.SheetNames.map((sheetName) => {
+            const sheet = workbook.Sheets[sheetName];
+            const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); // Get data as an array of arrays
+
+            // Assuming the ward names are in the first column (index 0)
+            const wards = sheetData.map(row => row[0]);
+
+            return { sheetName, wards };
+        });
+        // await Wards.deleteMany({});
+        // Step 3: Save each sheet's ward data to MongoDB
+        for (const sheet of workSheetsFromFile) {
+            const wards = sheet.wards;
+
+            // Create and save the ward documents to MongoDB
+            for (const wardName of wards) {
+                const ward = new Wards({
+                    name: wardName,
+                });
+                console.log(wardName)
+                await ward.save();
+                console.log(`Ward '${wardName}' saved successfully.`);
+            }
+        }
+
+        console.log('All wards uploaded successfully!')
+    } catch (error) {
+        console.error('Error processing data:', error);
+    }
 
 
 
