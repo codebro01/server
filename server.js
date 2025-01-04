@@ -116,7 +116,12 @@ app.use('/api/v1/admin-admin', adminAuthRouter)
 app.use('/api/v1/admin-enumerator', registrarAuthRouter)
 app.use('/api/v1/student', authMiddleware, studentsRouter)
 app.use('/api/v1/all-schools', allSchoolsRouter)
-app.use('/api/v1/wards', wards)
+app.use('/api/v1/wards', wards);
+
+
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "client/build", "index.html"));
+});
 
 const PORT = process.env.PORT || 3100;
 
@@ -192,44 +197,6 @@ async function processExcelData() {
     // } catch (error) {
     //     console.error('Error processing data:', error);
     // }
-
-
-    try {
-
-        // Step 1: Read the Excel file
-        const workbook = XLSX.readFile('./files/wards.xlsx');
-
-        // Step 2: Extract sheet names and ward data
-        const workSheetsFromFile = workbook.SheetNames.map((sheetName) => {
-            const sheet = workbook.Sheets[sheetName];
-            const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); // Get data as an array of arrays
-
-            // Assuming the ward names are in the first column (index 0)
-            const wards = sheetData.map(row => row[0]);
-
-            return { sheetName, wards };
-        });
-        // await Wards.deleteMany({});
-        // Step 3: Save each sheet's ward data to MongoDB
-        for (const sheet of workSheetsFromFile) {
-            const wards = sheet.wards;
-
-            // Create and save the ward documents to MongoDB
-            for (const wardName of wards) {
-                const ward = new Wards({
-                    name: wardName,
-                });
-                console.log(wardName)
-                await ward.save();
-                console.log(`Ward '${wardName}' saved successfully.`);
-            }
-        }
-
-        console.log('All wards uploaded successfully!')
-    } catch (error) {
-        console.error('Error processing data:', error);
-    }
-
 
 
 }
