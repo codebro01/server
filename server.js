@@ -71,11 +71,15 @@ app.use(session({
 
 //Routes 
 
-app.get('/api/v1', async (req, res) => {
-    const wards = await Wards.find({});
-    console.log(wards)
-    res.send(wards)
+app.get('/', (req, res) => {
+    res.send('Welcome to kogi agile api')
 })
+
+// app.get('/api/v1', async (req, res) => {
+//     const wards = await Wards.find({});
+//     console.log(wards)
+//     res.send(wards)
+// })
 app.use('/api/v1/admin-admin', adminAuthRouter)
 app.use('/api/v1/admin-enumerator', registrarAuthRouter)
 app.use('/api/v1/student', authMiddleware, studentsRouter)
