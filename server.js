@@ -43,23 +43,39 @@ const limiter = rateLimit({
 
 
 
-const allowedOrigin = ['http://localhost:3000', 'https://server-g10x.onrender.com', 'https://calm-stardust-05aabe.netlify.app', 'https://kogi-agile-app-vite.vercel.app', 'https://server-nu-khaki-78.vercel.app'];
-app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || allowedOrigin.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'], // Ensure these headers are allowed
-}));
+const allowedOrigins = [
+    'http://localhost:3000',
+    'https://server-g10x.onrender.com',
+    'https://calm-stardust-05aabe.netlify.app',
+    'https://kogi-agile-app-vite.vercel.app',
+    'https://server-nu-khaki-78.vercel.app'
+];
 
+// CORS middleware
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    })
+);
+
+// Handle preflight requests
 app.use((req, res, next) => {
-    console.log('Origin:', req.headers.origin);
-    console.log('Allowed Origins:', allowedOrigin);
+    if (req.method === 'OPTIONS') {
+        res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.header('Access-Control-Allow-Credentials', 'true');
+        return res.sendStatus(204);
+    }
     next();
 });
 
