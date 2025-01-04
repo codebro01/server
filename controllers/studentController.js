@@ -297,13 +297,12 @@ export const deleteStudent = async (req, res, next) => {
 
 export const updateStudent = async (req, res, next) => {
     try {
-        if (req.file) {
-            const uploadedImage = req.uploadedImage;
-            const { secure_url } = uploadedImage;
+        if (req.file && req.uploadedImage) {
+            const { secure_url } = req.uploadedImage;
         }
-        if (!uploadedImage) {
-            return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
-        }
+        // if (!uploadedImage) {
+        //     return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
+        // }
 
         const { permissions } = req.user;
 
@@ -320,7 +319,7 @@ export const updateStudent = async (req, res, next) => {
             const timeDifference = (currentTime - registrationTime) / (1000 * 60 * 60);
 
             if (timeDifference < 5) {
-                const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body, passport: secure_url }, { new: true, runValidators: true });
+                const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body }, { new: true, runValidators: true });
                 if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
                 return res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
 

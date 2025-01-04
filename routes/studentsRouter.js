@@ -9,19 +9,19 @@ const router = express.Router();
 
 
 router.route('/')
-    .get(authorizePermission('handle_students') ,getAllStudents)
-    .post(authorizePermission('handle_students'), upload.single('image'), (req, res, next) => cloudinaryImageUploader(req, res, next, 'admin_passport') ,createStudent)
+    .get(authorizePermission('handle_students'), getAllStudents)
+    .post(authorizePermission('handle_students'), upload.single('image'), (req, res, next) => cloudinaryImageUploader(req, res, next, 'admin_passport'), createStudent)
 router.route('/:id')
     .delete(authorizePermission('delete_operations'), deleteStudent)
     .patch(authorizePermission('handle_students'), upload.single('image'), (req, res, next) => {
         console.log(req.file)
-        if(req.file) {
+        if (req.file) {
             cloudinaryImageUploader(req, res, next, 'admin_passport')
         }
         next()
     }, updateStudent);
 router.get('/download', authorizePermission('handle_admins'), filterAndDownload)
 router.get('/attendance-sheet', authorizePermission('handle_students'), downloadAttendanceSheet)
-    export default router;
+export default router;
 
 
