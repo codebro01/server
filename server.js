@@ -38,7 +38,9 @@ const limiter = rateLimit({
 
 // app.use(helmet());
 
-app.options('*', cors()); // Preflight requests
+// app.options('*', cors()); // Preflight requests
+
+
 
 
 const allowedOrigin = ['http://localhost:3000', 'https://server-g10x.onrender.com', 'https://calm-stardust-05aabe.netlify.app', 'https://kogi-agile-app-vite.vercel.app', 'https://server-nu-khaki-78.vercel.app'];
@@ -54,6 +56,12 @@ app.use(cors({
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'], // Ensure these headers are allowed
 }));
+
+app.use((req, res, next) => {
+    console.log('Origin:', req.headers.origin);
+    console.log('Allowed Origins:', allowedOrigin);
+    next();
+});
 
 
 app.use(cookieParser(process.env.JWT_SECRET));
