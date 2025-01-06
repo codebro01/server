@@ -70,7 +70,6 @@ export const loginAdmin = async (req, res, next) => {
         role.permissions.map(permission => permission.name)
     );
 
-    console.log(allPermissionNames);
     const token = attachCookieToResponse({ user: tokenUser });
     // req.session.user = tokenUser;
     res.status(StatusCodes.OK).json({ tokenUser, token, allPermissionNames });

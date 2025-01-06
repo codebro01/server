@@ -14,7 +14,6 @@ router.route('/')
 router.route('/:id')
     .delete(authorizePermission('delete_operations'), deleteStudent)
     .patch(authorizePermission('handle_students'), upload.single('image'), (req, res, next) => {
-        console.log(req.file)
         if (req.file) {
             cloudinaryImageUploader(req, res, next, 'admin_passport')
         }

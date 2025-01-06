@@ -22,7 +22,6 @@ export const getUserLogs = async (userId) => {
       throw new Error('User not found');
     }
 
-    console.log('User Logs:', user.logs);
     return user.logs;
   } catch (error) {
     console.error('Error retrieving logs:', error.message);

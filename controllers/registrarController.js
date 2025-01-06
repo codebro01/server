@@ -7,14 +7,14 @@ import { BadRequestError } from "../errors/badRequestError.js";
 import { NotFoundError } from "../errors/notFoundError.js";
 import { Roles } from "../models/rolesSchema.js";
 
-export const getAllRegistrars = async (req, res) => {
+export const getAllRegistrars = async (req, res, next) => {
 
     try {
         const registrars = await Registrar.find({}).select('-password -logs -lastLogged -permissions -roles -accountNumber -bankName').sort('fullName').collation({ locale: "en", strength: 2 });
         res.status(200).json({ registrars, total: registrars.length });
     }
     catch (err) {
-        console.log(err)
+        return next(err)
     }
 }
 
@@ -75,7 +75,6 @@ export const loginRegistrar = async (req, res, next) => {
             role.permissions.map(permission => permission.name)
         );
 
-        console.log(user)
         const token = attachCookieToResponse({ user: tokenUser });
         const sessionData = req.session;
 
@@ -84,7 +83,6 @@ export const loginRegistrar = async (req, res, next) => {
             sessionCreated: sessionData.cookie._expires,
             data: sessionData, // Add any relevant session details
         });
-        console.log(tokenUser)
         res.status(StatusCodes.OK).json({ tokenUser, token, allPermissionNames });
     }
     catch (err) {
@@ -100,7 +98,6 @@ export const updateRegistrar = async (req, res) => {
 
     const { permissions } = req.user;
 
-    console.log(permissions);
 
     const { id } = req.params;
     if (!registrar) return next(new NotFoundError('There is no registrar with id: ' + id));
@@ -117,13 +114,10 @@ export const changeRegistrarPassword = async (req, res, next) => {
     try {
         const { userID } = req.user;
         const { currentPassword, newPassword } = req.body;
-        console.log(req.body)
         if (!currentPassword || !newPassword) return next(new BadRequestError("current and new password is required to update you password"))
         const user = await Registrar.findById({ _id: userID });
         if (!user) return next(new NotFoundError(`No user not found`));
-        console.log(user)
         const hashedPassword = await user.comparePWD(currentPassword)
-        console.log(hashedPassword)
         if (!hashedPassword) return next(new BadRequestError('Wrong password'));
         if (currentPassword === newPassword) return next(new BadRequestError('Please change the password, you are setting the same old password'));
         user.password = newPassword;
@@ -140,7 +134,6 @@ export const changeRegistrarPassword = async (req, res, next) => {
             sessionCreated: sessionData.cookie._expires,
             data: sessionData, // Add any relevant session details
         });
-        console.log(tokenUser)
         res.status(StatusCodes.OK).json({ message: "Password has been successfully changed" });
     }
     catch (err) {
@@ -158,7 +151,6 @@ export const resetRegistrarPassword = async (req, res, next) => {
         if (!email) return next(new BadRequestError("Please insert email to reset password"))
         const user = await Registrar.findOne({ email });
         if (!user) return next(new NotFoundError(`No user not found`));
-        console.log(user)
         user.password = "123456";
         await user.save();
         res.status(StatusCodes.OK).json({ message: `Password reset successful` });

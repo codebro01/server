@@ -9,9 +9,7 @@ import { StatusCodes } from 'http-status-codes';
 export const authMiddleware = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    console.log('token:' + token)
     if (!token)  return next (new NotAuthenticatedError("Invalid Token Not authorized to access this route"));
-    console.log(token)
     try {
         const decoded = verifyJWT({ token });
         const { userID} = decoded;
@@ -46,7 +44,6 @@ export const authMiddleware = async (req, res, next) => {
         req.user = { fullName, email, permissions, userID };
         }
 
-        // console.log(req.user);
         next();
     }
     catch (err) {
@@ -63,7 +60,6 @@ export const authMiddleware = async (req, res, next) => {
 export const authorizePermission = (requiredPermission) => {
     return async (req, res, next) => {
         const user = req.user;
-        console.log(req.user)
         // Check if the user has permissions loaded from the database
         if (!user || !user.permissions || user.permissions.length === 0) {
             return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have any permissions' });

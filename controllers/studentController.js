@@ -18,7 +18,6 @@ const __dirname = dirname(__filename);
 
 
 export const getAllStudents = async (req, res, next) => {
-    console.log(req.url)
     try {
         await Student.syncIndexes();
 
