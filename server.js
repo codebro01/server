@@ -44,14 +44,15 @@ const limiter = rateLimit({
 
 
 const allowedOrigins = [
+    'https://www.miscct.kogiagile.org',
+    'https://reactbuildapp.onrender.com',
+    'https://server-e1e8.onrender.com',
     'http://localhost:3000',
     'https://server-g10x.onrender.com',
     'https://calm-stardust-05aabe.netlify.app',
     'https://kogi-agile-app-vite.vercel.app',
     'https://server-nu-khaki-78.vercel.app',
     'https://miscct.kogiagile.org',
-    'https://server-e1e8.onrender.com',
-    'https://reactbuildapp.onrender.com',
 ];
 
 // CORS middleware
