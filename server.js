@@ -50,7 +50,8 @@ const allowedOrigins = [
     'https://kogi-agile-app-vite.vercel.app',
     'https://server-nu-khaki-78.vercel.app',
     'https://miscct.kogiagile.org',
-    'https://server-e1e8.onrender.com'
+    'https://server-e1e8.onrender.com',
+    'https://reactbuildapp.onrender.com',
 ];
 
 // CORS middleware
