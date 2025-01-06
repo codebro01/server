@@ -25,8 +25,7 @@ import { Roles } from './models/rolesSchema.js';
 import { generateRandomId } from './utils/generateRandomId.js';
 const app = express();
 import { KogiLga } from './models/LgaSchema.js';
-
-
+import { Schools, PrimarySchools, AllSchools } from './models/schoolsSchema.js';
 
 
 // Rate Limiting
@@ -105,14 +104,9 @@ app.get('/', (req, res) => {
 })
 app.get('/lgas', async (req, res) => {
     const kogilgas = await KogiLga.find({});
-    res.json({kogilgas})
+    res.json({ kogilgas })
 })
 
-// app.get('/api/v1', async (req, res) => {
-//     const wards = await Wards.find({});
-//     console.log(wards)
-//     res.send(wards)
-// })
 app.use('/api/v1/admin-admin', adminAuthRouter)
 app.use('/api/v1/admin-enumerator', registrarAuthRouter)
 app.use('/api/v1/student', authMiddleware, studentsRouter)
@@ -130,88 +124,20 @@ app.use(notFound);
 app.use(customErrorHandler);
 
 
-async function processExcelData() { 
-
-
-
-
-    // const cleanText = (text) => {
-    //     if (typeof text === 'string') {
-    //         return sanitizeHtml(text, {
-    //             allowedTags: [], // Remove all HTML tags
-    //             allowedAttributes: {}, // Remove all attributes
-    //         }).trim(); // Also trim whitespace
-    //     }
-    //     return text; // Return as-is if not a string
-    // };
-    // try {
-    //     // Read the Excel file
-    //     const workbook = XLSX.readFile('./files/KOGI AGILE LGA ENUMERATORS LIST-2.xlsx');
-
-    //     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    //     const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    //     const [headers, ...rows] = data;
-    //     const trimmedHeaders = headers.map(header => header.trim());
-    //     const registrarRole = await Roles.findOne({ role: 'registrar' });
-
-    //     const mappedData = rows.map(row =>
-    //         trimmedHeaders.reduce((acc, header, index) => {
-    //             acc[header] = row[index];
-    //             return acc;
-    //         }, {})
-    //     );
-    //     const registrarStore = [];
-    //     for (let index = 0; index < mappedData.length; index++) {
-    //         const record = mappedData[index];
-    //         const generatedRandomId = generateRandomId();
-
-    //         const registrarData = {
-    //             fullName: cleanText(record['fullName']),
-    //             lga: cleanText(record['lga']),
-    //             email: cleanText(record['email']),
-    //             accountNumber: cleanText(record['accountNumber']),
-    //             bankName: cleanText(record['bankName']),
-    //             password: "123456",
-    //             permissions: [registrarRole.permissions],
-    //             roles: [registrarRole._id],
-    //             passport: "https://res.cloudinary.com/dadzk0ffu/image/upload/v1735440797/admin_passport/kw0eqyvn4fzamhkkjsoy.png",
-    //             randomId: generatedRandomId,
-    //             phone: `+123456789${Math.floor(1000 + Math.random() * 9000)}`
-    //         };
-
-    //         await Registrar.deleteMany({});
-
-
-    //         registrarStore.push(registrarData);
-    //         // Log the index and the school name that was saved
-    //         console.log(`Index ${index}: Registrar "${registrarData.fullName}" saved successfully`);
-    //     }
-
-    //     for(const singleRegistrar of registrarStore) {
-    //         const newRegistrar = new Registrar(singleRegistrar);
-    //         await newRegistrar.save();
-    //     }
-
-    //     console.log('registrar all saved')
-
-    // } catch (error) {
-    //     console.error('Error processing data:', error);
-    // }
-
-
-}
-
 const startDB = async () => {
     try {
         await connectDB(process.env.MONGO_URI);
+        // const primary = await PrimarySchools.find({});
+        // const secondary = await Schools.find({});
+
+        // const allSchools = [...primary, ...secondary];
+
+        // await AllSchools.insertMany(allSchools);
+
+ 
         app.listen(PORT, () => {
             console.log('app connected to port:' + PORT)
         })
-
-
-
-        // processExcelData();
 
     }
     catch (err) {
@@ -221,7 +147,6 @@ const startDB = async () => {
 }
 startDB();
 
-// Function to process data and save to database
 
 
 

@@ -9,7 +9,7 @@ const router  = express.Router();
 router.get('/', async (req, res) => {
   try {
 
-    const allSchools = await AllSchools.find({}).sort('schoolName')
+    const allSchools = await AllSchools.find({}).sort('schoolName');
     // Send the merged data as the response
     res.status(200).json({allSchools});
   } catch (error) {
