@@ -49,7 +49,8 @@ const allowedOrigins = [
     'https://calm-stardust-05aabe.netlify.app',
     'https://kogi-agile-app-vite.vercel.app',
     'https://server-nu-khaki-78.vercel.app',
-    'https://miscct.kogiagile.org'
+    'https://miscct.kogiagile.org',
+    'https://server-e1e8.onrender.com'
 ];
 
 // CORS middleware
@@ -134,7 +135,7 @@ const startDB = async () => {
 
         // await AllSchools.insertMany(allSchools);
 
- 
+
         app.listen(PORT, () => {
             console.log('app connected to port:' + PORT)
         })
