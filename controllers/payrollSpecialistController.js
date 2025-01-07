@@ -10,10 +10,20 @@ import { Roles } from "../models/rolesSchema.js";
 export const getAllPayrollSpecialists = async (req, res, next) => {
 
     try {
-        const payrollSpecialist = await PayrollSpecialist.find({}).select('-password -logs -lastLogged -permissions -roles -accountNumber -bankName').sort('fullName').collation({ locale: "en", strength: 2 });
-        res.status(200).json({ payrollSpecialist, total: payrollSpecialist.length });
+        const payrollSpecialists = await PayrollSpecialist.find({}).select('-password -logs -lastLogged -permissions -roles -accountNumber -bankName').sort('fullName').collation({ locale: "en", strength: 2 });
+        res.status(200).json({ payrollSpecialists, total: payrollSpecialists.length });
     }
     catch (err) {
+        return next(err)
+    }
+}
+
+export const getSinglePayrollSpecialist = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const payrollSpecialist = await PayrollSpecialist.findById({ _id: id });
+        res.status(200).json(payrollSpecialist);
+    } catch (error) {
         return next(err)
     }
 }
@@ -169,12 +179,12 @@ export const resetPayrollSpecialistPassword = async (req, res, next) => {
 }
 export const deletePayrollSpecialist = async (req, res, next) => {
     try {
-        const {id} = req.params;
-        
+        const { id } = req.params;
+
         const user = await PayrollSpecialist.findById({ _id: id });
         if (!user) return next(new NotFoundError(`user not found`));
-        
-        await PayrollSpecialist.findByIdAndDelete({_id:id});
+
+        await PayrollSpecialist.findByIdAndDelete({ _id: id });
         res.status(StatusCodes.OK).json({ message: `Useer hase been successfully deleted` });
     }
     catch (err) {
@@ -204,4 +214,3 @@ export const togglePayrollSpecialistStatus = async (req, res, next) => {
         return next(err);
     }
 };
-

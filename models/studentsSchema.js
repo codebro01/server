@@ -13,7 +13,7 @@ const StudentSchema = new mongoose.Schema({
     },
     studentNin: {
         type: String,
-        required: [true, "Student NIN is required"]
+        // required: [true, "Student NIN is required"]
     },
     ward: {
         type: String,
@@ -90,7 +90,7 @@ const StudentSchema = new mongoose.Schema({
     },
     parentNin: {
         type: String,
-        required: [true, "Parent/caregiver NIN cannot be empty"]
+        // required: [true, "Parent/caregiver NIN cannot be empty"]
     },
     bankName: {
         type: String,
