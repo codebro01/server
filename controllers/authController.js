@@ -4,14 +4,30 @@ import { StatusCodes } from 'http-status-codes';
 import { attachCookieToResponse, createTokenUser, generateRandomId, addLogToUser } from "../utils/index.js";
 
 import mongoose from "mongoose";// create admins
+
+export const getAllAdmins = async (req, res, next) => {
+    try {
+
+        const admins = await Admin.find({}).sort('-createdAt').select('-password');
+        return res.status(StatusCodes.OK).json({ admins, totalAdmins: admins.length });
+    }
+    catch (err) {
+        console.log(err)
+    }
+}
+
+
+
+
+
 export const createAdmin = async (req, res, next) => {
 
     const uploadedImage = req.uploadedImage;
     if (!uploadedImage) {
         return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
     }
-    const { secure_url, public_id } = uploadedImage;    
-    
+    const { secure_url, public_id } = uploadedImage;
+
     // await Admin.deleteMany({});
     try {
         const count = (await Admin.countDocuments() < 1 ? true : false);
@@ -26,7 +42,7 @@ export const createAdmin = async (req, res, next) => {
 
             attachCookieToResponse({ user: tokenUser });
             // req.session.user = tokenUser;
-            res.status(200).json({ superAdmin, tokenUser });    
+            res.status(200).json({ superAdmin, tokenUser });
             return;
         };
 
@@ -75,7 +91,25 @@ export const loginAdmin = async (req, res, next) => {
     res.status(StatusCodes.OK).json({ tokenUser, token, allPermissionNames });
 }
 
+export const updateAdmin = async (req, res, next) => {
+    try {
 
+        const { id } = req.params;
+
+        const admin = await Admin.findById({ _id: id })
+
+        if (!admin) return next(new NotFoundError('There is no registrar with id: ' + id));
+
+        console.log(req.body)
+
+        const updatedAdmin = await Admin.findByIdAndUpdate({ _id: id }, { ...req.body }, { new: true, runValidators: true });
+        // if (!updatedAdmin) return next(new Error('An Error occured while trying t    o update registrar'))
+        res.status(StatusCodes.OK).json({ updatedAdmin: updatedAdmin });
+    }
+    catch (err) {
+        return next(err)
+    }
+}
 
 
 

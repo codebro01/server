@@ -13,7 +13,7 @@ export const checkPermissions = (requiredPermissions) => {
 
             // If no user found, return an error
             if (!user) {
-                return res.status(401).json({ message: 'User not found' });
+                return res.status(401).json({ message: 'User does not exist' });
             }
 
             // Get the permissions for the user's role

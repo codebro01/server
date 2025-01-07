@@ -1,17 +1,17 @@
 
-import {Schema, model} from 'mongoose';
+import { Schema, model } from 'mongoose';
 
 const SchoolSchema = new Schema({
     schoolName: String,
-    schoolCategory: String, 
+    schoolCategory: String,
     schoolCode: String,
     LGA: String
 })
 
 const PrimarySchoolSchema = new Schema({
     schoolName: String,
-    schoolCategory: String, 
-    schoolType: String, 
+    schoolCategory: String,
+    schoolType: String,
     schoolCode: String,
     LGA: String
 })
@@ -19,8 +19,8 @@ const PrimarySchoolSchema = new Schema({
 
 const AllSchoolsSchema = new Schema({
     schoolName: String,
-    schoolCategory: String, 
-    schoolType: String, 
+    schoolCategory: String,
+    schoolType: String,
     schoolCode: String,
     LGA: String
 })

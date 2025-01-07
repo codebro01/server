@@ -12,7 +12,7 @@ import { connectDB } from './db/connectDB.js';
 import { notFound } from './middlewares/notFoundMiddleware.js';
 import { customErrorHandler } from './middlewares/errorMiddleware.js';
 import cookieParser from 'cookie-parser'
-import { adminAuthRouter, registrarAuthRouter, studentsRouter, allSchoolsRouter } from './routes/index.js';
+import { adminAuthRouter, registrarAuthRouter, studentsRouter, allSchoolsRouter, payrollSpecialistRouter } from './routes/index.js';
 import { authMiddleware, authorizePermission } from './middlewares/authenticationMiddleware.js';
 import session from 'express-session';
 import cors from 'cors';
@@ -21,11 +21,8 @@ import mongoose from 'mongoose';
 import { Registrar } from './models/registrarSchema.js';
 import sanitizeHtml from 'sanitize-html';
 import { wards } from './routes/index.js';
-import { Roles } from './models/rolesSchema.js';
-import { generateRandomId } from './utils/generateRandomId.js';
 const app = express();
 import { KogiLga } from './models/LgaSchema.js';
-import { Schools, PrimarySchools, AllSchools } from './models/schoolsSchema.js';
 
 
 // Rate Limiting
@@ -112,6 +109,7 @@ app.get('/lgas', async (req, res) => {
 
 app.use('/api/v1/admin-admin', adminAuthRouter)
 app.use('/api/v1/admin-enumerator', registrarAuthRouter)
+app.use('/api/v1/payroll-specialists', payrollSpecialistRouter)
 app.use('/api/v1/student', authMiddleware, studentsRouter)
 app.use('/api/v1/all-schools', allSchoolsRouter)
 app.use('/api/v1/wards', wards);

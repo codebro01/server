@@ -3,7 +3,7 @@ import { Schema, model } from 'mongoose';
 import bcrypt from "bcryptjs";
 
 
-const RegistrarSchema = new Schema({
+const payrollSpecialistSchema = new Schema({
     email: {
         type: String,
         required: [true, 'Email is required'],
@@ -91,7 +91,7 @@ const RegistrarSchema = new Schema({
     },
 }, {timestamps: true});
 
-RegistrarSchema.pre('save', async function (next) {
+payrollSpecialistSchema.pre('save', async function (next) {
     if (!this.isNew && !this.isModified('password')) return next();
 
     if (this.isModified('password')) {
@@ -104,13 +104,13 @@ RegistrarSchema.pre('save', async function (next) {
 
 
 
-RegistrarSchema.methods.comparePWD = async function (inputedPassword) {
+payrollSpecialistSchema.methods.comparePWD = async function (inputedPassword) {
     const compare = bcrypt.compare(inputedPassword, this.password);
     return compare;
 }
 
 // Middleware to update `lastLogged` on save
-RegistrarSchema.pre('save', function (next) {
+payrollSpecialistSchema.pre('save', function (next) {
     if (this.isModified('lastLogged')) {
         this.lastLogged = Date.now();
     }
@@ -118,16 +118,16 @@ RegistrarSchema.pre('save', function (next) {
 });
 
 // Method to update `lastLogged`
-RegistrarSchema.methods.updateLastLogged = function () {
+payrollSpecialistSchema.methods.updateLastLogged = function () {
     this.lastLogged = Date.now();
     return this.save();
 };
 
-RegistrarSchema.methods.addLog = async function (log) {
+payrollSpecialistSchema.methods.addLog = async function (log) {
     this.logs.push(log);
     if (this.logs.length > 5) {
         this.logs.shift(); // Remove the oldest log
     }
 };
 
-export const Registrar = model('Registrars', RegistrarSchema);
+export const PayrollSpecialist = model('payrollspecialists', payrollSpecialistSchema);

@@ -24,8 +24,6 @@ export const AdminSchema = new Schema({
     },
     password: {
         type: String,
-        required: [true, 'Password is required'],
-        minlength: [6, "Minimum value of password is 6"],
     },
     randomId: {
         type: Number,

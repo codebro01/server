@@ -17,9 +17,10 @@ export const customErrorHandler = (err, req, res, next) => {
     }
 
     if (err.name === 'CastError') {
-        errObj.message = `No item found with id : ${err.value}`;
+        errObj.message = `Invalid value for field "${err.path}": ${err.value}. No item found.`;
         errObj.statusCode = 404;
     }
+
 
     return res.status(errObj.statusCode).json({message: errObj.message})
 }

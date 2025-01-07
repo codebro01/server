@@ -4,6 +4,7 @@ import { Admin } from '../models/adminSchema.js';
 import { Registrar } from '../models/registrarSchema.js';
 import { verifyJWT } from '../utils/index.js';
 import { StatusCodes } from 'http-status-codes';
+import { PayrollSpecialist } from '../models/payRollSpecialistSchema.js';
 
 
 export const authMiddleware = async (req, res, next) => {
@@ -28,8 +29,15 @@ export const authMiddleware = async (req, res, next) => {
                 select: 'name', // Select only the "name" field of permissions
             },
         });;
+        const payrollSpecialist = await PayrollSpecialist.findById(userID).populate({
+            path: 'roles', // Populate roles
+            populate: {
+                path: 'permissions', // Populate permissions within each role
+                select: 'name', // Select only the "name" field of permissions
+            },
+        });;
 
-        if (!admin && !registrar) next(new NotFoundError("User not found"));
+        if (!admin && !registrar && !payrollSpecialist) next(new NotFoundError("User not found"));
         if(admin) {
 
         const permissionsArray = admin.roles.flatMap(role => role.permissions.map(permission => permission.name));
@@ -41,6 +49,12 @@ export const authMiddleware = async (req, res, next) => {
             const permissionsArray = registrar.roles.flatMap(role => role.permissions.map(permission => permission.name));
             registrar.permissions = permissionsArray
         const {fullName, email, permissions, userID: _id} = registrar;
+        req.user = { fullName, email, permissions, userID };
+        }
+        if(payrollSpecialist) {
+            const permissionsArray = payrollSpecialist.roles.flatMap(role => role.permissions.map(permission => permission.name));
+            payrollSpecialist.permissions = permissionsArray
+        const {fullName, email, permissions, userID: _id} = payrollSpecialist;
         req.user = { fullName, email, permissions, userID };
         }
 
