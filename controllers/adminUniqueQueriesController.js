@@ -1,16 +1,16 @@
-import {Student} from '../models/studentsSchema.js';
-import {Registrar} from '../models/registrarSchema.js';
+import { Student } from '../models/studentsSchema.js';
+import { Registrar } from '../models/registrarSchema.js';
 
 
 export const lgasByHighestRegisteredStudents = async (req, res, next) => {
     try {
-        const lgaCounts = await Students.aggregate([
+        const lgaCounts = await Student.aggregate([
             {
-                $unwind: "$lgas" // Unwind the lgas array to treat each LGA as a separate document
+                $unwind: "$lga" // Unwind the lgas array to treat each LGA as a separate document
             },
             {
                 $group: {
-                    _id: "$lgas", // Group by the LGA text value (LGA name)
+                    _id: "$lga", // Group by the LGA text value (LGA name)
                     totalStudents: { $sum: 1 }, // Count the number of students for each LGA
                 },
             },
@@ -26,9 +26,9 @@ export const lgasByHighestRegisteredStudents = async (req, res, next) => {
             lgaCounts
         });
     } catch (error) {
-        return next(error)  
+        return next(error)
     }
-    
+
 }
 export const enumeratorsByyHighestRegisteredStudents = async (req, res, next) => {
     try {
@@ -36,7 +36,7 @@ export const enumeratorsByyHighestRegisteredStudents = async (req, res, next) =>
         const topEnumerators = await Student.aggregate([
             {
                 $group: {
-                    _id: "$enumeratorId", // Group by enumerator ID
+                    _id: "$createdBy", // Group by enumerator ID
                     totalStudents: { $sum: 1 }, // Count the number of students for each enumerator
                 },
             },
@@ -48,7 +48,7 @@ export const enumeratorsByyHighestRegisteredStudents = async (req, res, next) =>
             },
             {
                 $lookup: {
-                    from: "enumerators", // Join with the enumerators collection
+                    from: "registrars", // Join with the enumerators collection
                     localField: "_id", // Match the enumerator ID in the students schema
                     foreignField: "_id", // Match it to the enumerator collection's _id field
                     as: "enumeratorDetails", // Create a new field for enumerator details
@@ -58,13 +58,13 @@ export const enumeratorsByyHighestRegisteredStudents = async (req, res, next) =>
                 $project: {
                     _id: 1, // Include enumerator ID
                     totalStudents: 1, // Include total students count
-                    enumeratorName: { $arrayElemAt: ["$enumeratorDetails.name", 0] }, // Get the enumerator's name from the joined array
+                    enumeratorName: { $arrayElemAt: ["$enumeratorDetails.fullName", 0] }, // Get the enumerator's name from the joined array
                     enumeratorId: { $arrayElemAt: ["$enumeratorDetails._id", 0] }, // Get the enumerator's ID from the joined array
                 },
             },
         ])
         return res.status(200).json(topEnumerators)
-        
+
     } catch (error) {
         return next(error)
     }

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-
+import { Registrar } from './registrarSchema.js';
 
 const StudentSchema = new mongoose.Schema({
     schoolId: {
@@ -107,7 +107,9 @@ const StudentSchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Registrar"
+        ref: "Registrars",
+        required: [true, "School cannot be empty"]
+
     },
 
 

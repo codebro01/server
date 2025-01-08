@@ -98,7 +98,7 @@ export const loginRegistrar = async (req, res, next) => {
         res.status(StatusCodes.OK).json({ tokenUser, token, allPermissionNames });
     }
     catch (err) {
-        console.log(err)
+        return next(err)
     }
 }
 

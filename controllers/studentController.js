@@ -195,10 +195,10 @@ export const filterEnumeratorsByStudents = async (req, res, next) => {
         }
 
         // Filter by enumeratorId if provided
-      
+
 
         // Query the database with the constructed filter
-        const students = await Student.find(filter).limit(20);
+        const students = await Student.find(filter).populate('createdBy').limit(20);
 
         return res.status(200).json({
             count: students.length,
@@ -286,6 +286,7 @@ export const downloadAttendanceSheet = async (req, res, next) => {
 
 export const createStudent = async (req, res, next) => {
     try {
+        // await Student.deleteMany({});
         const uploadedImage = req.uploadedImage;
         if (!uploadedImage) {
             return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
