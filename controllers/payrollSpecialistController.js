@@ -163,7 +163,7 @@ export const changePayrollSpecialistPassword = async (req, res, next) => {
 
 export const resetPayrollSpecialistPassword = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { id } = req.query;
         if (!id) return next(new BadRequestError("Please user id is required to reset password"))
         const user = await PayrollSpecialist.findById({ _id: id });
         if (!user) return next(new NotFoundError(`user not found`));
@@ -193,7 +193,7 @@ export const deletePayrollSpecialist = async (req, res, next) => {
 }
 export const togglePayrollSpecialistStatus = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { id } = req.query;
 
         // Check if the user exists
         const user = await PayrollSpecialist.findById(id);

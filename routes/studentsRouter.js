@@ -1,6 +1,6 @@
 import express from 'express';
-import { getAllStudents, filterAndDownload, updateStudent, deleteStudent, createStudent, downloadAttendanceSheet } from '../controllers/studentController.js';
-import { authorizePermission } from '../middlewares/authenticationMiddleware.js';
+import { getAllStudents, filterAndDownload, updateStudent, filterEnumeratorsByStudents, deleteStudent, createStudent, downloadAttendanceSheet, enumeratorsByyHighestRegisteredStudents, lgasByHighestRegisteredStudents } from '../controllers/index.js';
+import { authMiddleware, authorizePermission } from '../middlewares/authenticationMiddleware.js';
 import { upload } from '../config/multer.js';
 import { cloudinaryImageUploader } from '../utils/cloudinaryImageUploader.js';
 
@@ -20,7 +20,10 @@ router.route('/:id')
         next()
     }, updateStudent);
 router.get('/download', authorizePermission('handle_admins'), filterAndDownload)
-router.get('/attendance-sheet', authorizePermission('handle_students'), downloadAttendanceSheet)
+router.get('/attendance-sheet', authorizePermission('handle_students'), downloadAttendanceSheet);
+router.get('/from-to', authorizePermission('handle_students'), filterEnumeratorsByStudents);
+router.get('/enumerators-student-count', authMiddleware, authorizePermission('handle_registrars'), enumeratorsByyHighestRegisteredStudents )
+router.get('/enumerators-top-lga-count', authMiddleware, authorizePermission('handle_registrars'), lgasByHighestRegisteredStudents )
 export default router;
 
 

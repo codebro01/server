@@ -53,12 +53,10 @@ const RegistrarSchema = new Schema({
     },
     bvn:{
         type:String, 
-        required:[true, 'Bvn is required'], 
         unique: true,
     }, 
     nin:{
         type:String, 
-        required:[true, 'Nin is required'], 
         unique: true,
     }, 
     accountNumber: {

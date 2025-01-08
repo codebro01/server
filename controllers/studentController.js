@@ -178,6 +178,38 @@ export const filterAndDownload = async (req, res, next) => {
     }
 };
 
+export const filterEnumeratorsByStudents = async (req, res, next) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        // Initialize the filter object
+        const filter = {};
+
+        // Add date range filters if provided
+        if (startDate) {
+            filter.createdAt = { $gte: new Date(startDate) };
+        }
+        if (endDate) {
+            filter.createdAt = filter.createdAt || {}; // Ensure createdAt exists
+            filter.createdAt.$lte = new Date(endDate);
+        }
+
+        // Filter by enumeratorId if provided
+      
+
+        // Query the database with the constructed filter
+        const students = await Student.find(filter).limit(20);
+
+        return res.status(200).json({
+            count: students.length,
+            students,
+        });
+    } catch (error) {
+        return next(error);
+    }
+
+}
+
 export const downloadAttendanceSheet = async (req, res, next) => {
     try {
         const { userID } = req.user;

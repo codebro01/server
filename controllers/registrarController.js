@@ -127,9 +127,6 @@ export const updateRegistrar = async (req, res, next) => {
    }
 }
 
-
-
-
 export const changeRegistrarPassword = async (req, res, next) => {
     try {
         const { userID } = req.user;
@@ -163,8 +160,6 @@ export const changeRegistrarPassword = async (req, res, next) => {
 
 
 }
-
-
 export const resetRegistrarPassword = async (req, res, next) => {
     try {
         const { id } = req.query;
@@ -182,6 +177,26 @@ export const resetRegistrarPassword = async (req, res, next) => {
 
 }
 
+export const toggleRegistrarStatus = async (req, res, next) => {
+    try {
+        const { id } = req.query;
+
+        const user = await Registrar.findById(id);
+        if (!user) return next(new NotFoundError('User not found'));
+
+        user.isActive = !user.isActive;
+
+        const updatedUser = await user.save();
+
+        res.status(StatusCodes.OK).json({
+            message: `User has been successfully ${user.isActive ? 'enabled' : 'disabled'}`,
+            user: updatedUser,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
 export const deleteRegistrar = async (req, res, next) => {
     try {
         const {id} = req.params;
@@ -197,22 +212,4 @@ export const deleteRegistrar = async (req, res, next) => {
     }
 }
 
-export const toggleRegistrarStatus = async (req, res, next) => {
-    try {
-        const { id } = req.query;
 
-        const user = await Registrar.findById(id);
-        if (!user) return next(new NotFoundError('User not found'));
-
-        user.isActive = !user.isActive; 
-
-        const updatedUser = await user.save();
-
-        res.status(StatusCodes.OK).json({
-            message: `User has been successfully ${user.isActive ? 'enabled' : 'disabled'}`,
-            user: updatedUser,
-        });
-    } catch (err) {
-        return next(err);
-    }
-};

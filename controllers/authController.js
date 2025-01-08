@@ -16,9 +16,15 @@ export const getAllAdmins = async (req, res, next) => {
     }
 }
 
-
-
-
+export const getSingleAdmin = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const admin = await Admin.findById({ _id: id });
+        res.status(200).json({ admin })
+    } catch (error) {
+        return next(err)
+    }
+}
 
 export const createAdmin = async (req, res, next) => {
 
@@ -28,13 +34,12 @@ export const createAdmin = async (req, res, next) => {
     }
     const { secure_url, public_id } = uploadedImage;
 
-    // await Admin.deleteMany({});
     try {
         const count = (await Admin.countDocuments() < 1 ? true : false);
-
         if (count) {
 
             const superAdminRole = await Roles.findOne({ role: 'super_admin' });
+            console.log(superAdminRole)
             const generatedRandomId = generateRandomId();
             const superAdmin = await Admin.create({ ...req.body, roles: [superAdminRole._id], randomId: generatedRandomId, passport: secure_url });
             if (!superAdmin) return next(new BadRequestError('An error occured creating admin'))
@@ -110,6 +115,43 @@ export const updateAdmin = async (req, res, next) => {
         return next(err)
     }
 }
+
+export const resetAdminPassword = async (req, res, next) => {
+    try {
+        const { id } = req.query;
+        if (!id) return next(new BadRequestError("Invalid id"))
+        const user = await Admin.findById({ _id: id });
+        if (!user) return next(new NotFoundError(`No user found`));
+        user.password = "123456";
+        await user.save();
+        res.status(StatusCodes.OK).json({ message: `Password reset successful` });
+    }
+    catch (err) {
+        return next(err)
+    }
+
+
+}
+
+export const toggleAdminStatus = async (req, res, next) => {
+    try {
+        const { id } = req.query;
+
+        const user = await Admin.findById(id);
+        if (!user) return next(new NotFoundError('User not found'));
+
+        user.isActive = !user.isActive;
+
+        const updatedUser = await user.save();
+
+        res.status(StatusCodes.OK).json({
+            message: `User has been successfully ${user.isActive ? 'enabled' : 'disabled'}`,
+            user: updatedUser,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
 
 
 

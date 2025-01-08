@@ -28,6 +28,10 @@ export const AdminSchema = new Schema({
     randomId: {
         type: Number,
     },
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
     roles: [{
         type: Schema.Types.ObjectId,
         ref: "Roles"
