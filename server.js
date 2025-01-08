@@ -41,6 +41,7 @@ const limiter = rateLimit({
 
 
 const allowedOrigins = [
+    'https://portal.kogiagile.org',
     'https://www.portal.kogiagile.org',
     'www.portal.kogiagile.org',
     'https://www.cct.kogiagile.org',
