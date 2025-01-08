@@ -9,7 +9,6 @@ export const addLogToUser = async (Model, userId, action, ip = null, metadata = 
     user.addLog({ action, ip, metadata });
     await user.save();
 
-    console.log('Log added successfully');
   } catch (error) {
     console.error('Error adding log:', error.message);
   }
