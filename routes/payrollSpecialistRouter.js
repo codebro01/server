@@ -5,11 +5,11 @@ import { cloudinaryImageUploader } from '../utils/cloudinaryImageUploader.js';
 import { authorizePermission, authMiddleware } from '../middlewares/authenticationMiddleware.js';
 const router = express.Router();
 
-router.post('/register', authMiddleware, authorizePermission('handle_payments'), upload.single('image'),
+router.post('/register', authMiddleware, authorizePermission('handle_admins'), upload.single('image'),
     (req, res, next) => cloudinaryImageUploader(req, res, next, 'payroll_specialist_passport'), createPayrollSpecialist)
 router.route('/login')
     .post(loginPayrollSpecialist)
-router.get('/', authMiddleware, authorizePermission('handle_payments'), getAllPayrollSpecialists);
+router.get('/', authMiddleware, authorizePermission('handle_admins'), getAllPayrollSpecialists);
 // router.get('/', authMiddleware, authorizePermission('handle_payments'), getAllRegistrars);
 router.get('/get-single/:id', authMiddleware, authorizePermission('handle_registrars'), getSinglePayrollSpecialist)
 router.patch('/update/:id', authMiddleware, authorizePermission('handle_admins'), upload.single('image'), (req, res, next) => {
@@ -19,7 +19,7 @@ router.patch('/update/:id', authMiddleware, authorizePermission('handle_admins')
     }
     next()
 }, updatePayrollSpecialist);
-router.patch('/change-password', authMiddleware, authorizePermission('handle_payments'), changePayrollSpecialistPassword);
+router.patch('/change-password', authMiddleware, authorizePermission('handle_admins'), changePayrollSpecialistPassword);
 router.patch('/reset-password', authMiddleware, authorizePermission('handle_admins'), resetPayrollSpecialistPassword);
 router.patch('/toggle-status', authMiddleware, authorizePermission('handle_admins'), togglePayrollSpecialistStatus)
 

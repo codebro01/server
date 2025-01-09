@@ -76,7 +76,7 @@ const StudentSchema = new mongoose.Schema({
     // },
     yearOfEnrollment: {
         type: String,
-        required: [true, "Please select year at enrollment"]
+        required: [true, "Please select year of enrollment"]
     },
     // yearAdmitted: {
     //     type: String,

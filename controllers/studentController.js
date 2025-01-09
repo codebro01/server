@@ -74,45 +74,68 @@ export const getAllStudents = async (req, res, next) => {
 }
 
 export const filterAndDownload = async (req, res, next) => {
+
     try {
         await Student.syncIndexes();
 
         const { userID, permissions } = req.user;
 
-        const { ward, schoolId, lga, presentClass, sortBy, sortOrder, nationality, state, enumerator, dateFrom, dateTo, year, yearOfAdmission, classAtEnrollment, yearOfEnrollment } = req.query;
+        const { ward, schoolId, lga, presentClass, sortBy, sortOrder, nationality, stateOfOrigin, enumerator, dateFrom, dateTo, yearOfAdmission, yearOfEnrollment } = req.query;
 
         // Create a basket object
         let basket;
-        if (!permissions.includes('handle_registrars')) {
+        if (!permissions.includes('handle_registrars') ) {
             basket = { createdBy: userID };
         } else {
             basket = {};
         }
-        if (lga) basket.lga = lga;
+        if (lga) basket.lgaOfEnrollment = lga;
         if (presentClass) basket.presentClass = presentClass;
-        if (classAtEnrollment) basket.classAtEnrollment = classAtEnrollment;
         if (yearOfEnrollment) basket.yearOfEnrollment = yearOfEnrollment;
         if (ward) basket.ward = ward;
         if (schoolId) basket.schoolId = schoolId;
         if (nationality) basket.nationality = nationality;
-        if (state) basket.stateOfOrigin = state;
+        if (stateOfOrigin) basket.stateOfOrigin = stateOfOrigin;
         if (enumerator) basket.createdBy = enumerator;
         if (dateFrom || dateTo) {
             basket.createdAt = {};
-            if (dateFrom) basket.createdAt.$gte = new Date(dateFrom);
-            if (dateTo) basket.createdAt.$lte = new Date(dateTo);
+
+            // Handle dateFrom
+            if (dateFrom) {
+                const fromDate = new Date(dateFrom);
+                if (isNaN(fromDate)) {
+                    return next(new BadRequestError('Invalid dateFrom format'));
+                }
+                basket.createdAt.$gte = fromDate;
+            }
+
+            // Handle dateTo
+            if (dateTo) {
+                const toDate = new Date(new Date(dateTo).setHours(23, 59, 59, 999));
+                if (isNaN(toDate)) {
+                    return next(new BadRequestError('Invalid dateTo format'));
+                }
+                basket.createdAt.$lte = toDate;
+            }
+
+            // Clean up empty `createdAt` filter
+            if (Object.keys(basket.createdAt).length === 0) {
+                delete basket.createdAt;
+            }
         }
-        if (year) basket.year = year;
-        if (yearOfAdmission) basket.yearAdmitted = yearOfAdmission;
+
+        // if (yearOfAdmission) basket.yearAdmitted = yearOfAdmission;
 
         let sort = { createdAt: -1 }; // Default sort
         if (sortBy && sortOrder) {
             sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
         }
 
+        console.log(basket.createdAt )
+
         const students = await Student.find(basket).populate('schoolId').populate('ward').populate('createdBy').sort(sort).collation({ locale: "en", strength: 2 }).lean();
 
-        if (!students.length) {
+        if (students.length < 1) {
             return next(new NotFoundError("No students with the filtered data provided"));
         };
 
@@ -129,12 +152,14 @@ export const filterAndDownload = async (req, res, next) => {
                 // Populate fields like _id, schoolId, ward, createdBy with actual readable data
                 if (header === '_id') {
                     row[header] = student._id.toString(); // Ensure _id is a string
-                } else if (header === 'ward' && student[header]) {
-                    row[header] = student[header].name || ''; // Assuming 'name' is a field in the 'ward' collection
                 } else if (header === 'createdBy' && student[header]) {
-                    row[header] = student[header].randomId || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                    row[header] = student[header].fullName || ''; // Assuming 'name' is a field in the 'createdBy' collection
                 } else if (student[header] && header === 'schoolId') {
                     row[header] = student[header].schoolName || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                } else if (student[header] && header === 'randomId') {
+                    student[header] && header === ''
+                    row[header] = ''; // Assuming 'name' is a field in the 'createdBy' collection
+
                 } else {
                     row[header] = student[header] || ''; // Handle regular fields
                 }
@@ -174,7 +199,7 @@ export const filterAndDownload = async (req, res, next) => {
         });
 
     } catch (err) {
-        next(err);
+        return next(err);
         console.log(err);
     }
 };
