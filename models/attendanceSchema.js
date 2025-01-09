@@ -1,28 +1,28 @@
 import { Schema, model } from "mongoose";
 
 
-const AttendanceSchema = new Schema ({
+const AttendanceSchema = new Schema({
     studentRandomId: {
         type: String,
         required: true,
     },
     enumeratorId: {
-        type: String, 
+        type: String,
         required: true,
     },
-    week_1:{
+    week_1: {
         type: Number
     },
-    week_2:{
+    week_2: {
         type: Number
     },
-    week_3:{
+    week_3: {
         type: Number
     },
-    week_4:{
+    week_4: {
         type: Number
     },
-    week_5:{
+    week_5: {
         type: Number
     },
     month: {
@@ -49,7 +49,7 @@ const AttendanceSchema = new Schema ({
     }
 
 
-}, {timestamps: true})
+}, { timestamps: true })
 
 
 
