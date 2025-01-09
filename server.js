@@ -24,7 +24,6 @@ import { wards } from './routes/index.js';
 const app = express();
 import { KogiLga } from './models/LgaSchema.js';
 
-
 // Rate Limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -49,7 +48,9 @@ const allowedOrigins = [
     'https://www.miscct.kogiagile.org',
     'https://reactbuildapp.onrender.com',
     'https://server-e1e8.onrender.com',
-    'http://localhost:3000',
+    'http://portal.localhost:3000',
+    'http://miscct.localhost:3000',
+    'http://cct.localhost:3000',
     'https://server-g10x.onrender.com',
     // 'https://calm-stardust-05aabe.netlify.app',
     // 'https://kogi-agile-app-vite.vercel.app',

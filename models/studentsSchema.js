@@ -2,6 +2,16 @@ import mongoose from 'mongoose';
 import { Registrar } from './registrarSchema.js';
 
 const StudentSchema = new mongoose.Schema({
+    randomId: {
+        type: String,
+        required: true,
+    },
+    biometricfinger_index: {
+        type: String,
+    },
+    biometricfinger_middle: {
+        type: String,
+    },
     schoolId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "AllSchools",
@@ -64,7 +74,7 @@ const StudentSchema = new mongoose.Schema({
     //     type: String,
     //     required: [true, "Please select class at enrollment"]
     // },
-    yearOfErollment: {
+    yearOfEnrollment: {
         type: String,
         required: [true, "Please select year at enrollment"]
     },
@@ -91,6 +101,9 @@ const StudentSchema = new mongoose.Schema({
     parentNin: {
         type: String,
         // required: [true, "Parent/caregiver NIN cannot be empty"]
+    },
+    parentBvn: {
+        type: String,
     },
     bankName: {
         type: String,

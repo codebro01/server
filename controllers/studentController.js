@@ -8,6 +8,7 @@ import { dirname } from 'path';
 import path from 'path';
 import fs from 'fs';
 import { Readable } from 'stream';
+import { generateStudentsRandomId } from '../utils/index.js';
 
 
 
@@ -227,7 +228,7 @@ export const downloadAttendanceSheet = async (req, res, next) => {
         // Prepare data for the sheet
         const schoolName = students[0]?.schoolId?.schoolName || 'Unknown School';
         const formattedData = students.map(student => ({
-            StudentId: student._id.toString(),
+            StudentId: student.randomId,
             Surname: student.surname || '',
             'Other Names': student.otherNames || '',
             Class: student.presentClass || "",
@@ -287,6 +288,8 @@ export const downloadAttendanceSheet = async (req, res, next) => {
 export const createStudent = async (req, res, next) => {
     try {
         // await Student.deleteMany({});
+        const randomId = generateStudentsRandomId();
+        console.log(randomId)
         const uploadedImage = req.uploadedImage;
         if (!uploadedImage) {
             return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
@@ -294,7 +297,7 @@ export const createStudent = async (req, res, next) => {
         const { secure_url } = uploadedImage;
         const { userID } = req.user;
         // const optional = req.body.ward || "others"
-        const student = new Student({ ...req.body, createdBy: userID, passport: secure_url })
+        const student = new Student({ ...req.body, createdBy: userID, passport: secure_url, randomId: randomId })
         await student.save();
 
         const sessionData = req.session;
