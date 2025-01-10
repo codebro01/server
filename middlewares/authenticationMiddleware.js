@@ -71,23 +71,51 @@ export const authMiddleware = async (req, res, next) => {
 
 
 
-export const authorizePermission = (requiredPermission) => {
-    return async (req, res, next) => {
-        const user = req.user;
-        // Check if the user has permissions loaded from the database
-        if (!user || !user.permissions || user.permissions.length === 0) {
-            return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have any permissions' });
-        }
+// export const authorizePermission = (requiredPermission) => {
+//     return async (req, res, next) => {
+//         const user = req.user;
+//         // Check if the user has permissions loaded from the database
+//         if (!user || !user.permissions || user.permissions.length === 0) {
+//             return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have any permissions' });
+//         }
 
-        const hasPermission = user.permissions.includes(requiredPermission);
+//         const hasPermission = user.permissions.includes(requiredPermission);
 
-        if (!hasPermission) {
-            return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have the required permission' });
-        }
+//         if (!hasPermission) {
+//             return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have the required permission' });
+//         }
 
-        // User has the required permission, proceed to the next middleware or route handler
-        next();
-    };
+//         // User has the required permission, proceed to the next middleware or route handler
+//         next();
+//     };
+// };
+
+export const authorizePermission = (requiredPermissions) => {
+  return async (req, res, next) => {
+    const user = req.user;
+
+    if (!user || !user.permissions || user.permissions.length === 0) {
+      return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have any permissions' });
+    }
+
+    // Ensure requiredPermissions is an array
+    if (!Array.isArray(requiredPermissions)) {
+      requiredPermissions = [requiredPermissions];
+    }
+
+    // Check if user has at least one required permission
+    const hasPermission = requiredPermissions.some((permission) =>
+      user.permissions.includes(permission)
+    );
+
+    if (!hasPermission) {
+      return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have the required permissions' });
+    }
+
+    // User has at least one required permission, proceed
+    next();
+  };
 };
+
 
 

@@ -6,9 +6,10 @@ import XLSX from 'xlsx';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
-import fs from 'fs';
+import fs, { copyFileSync } from 'fs';
 import { Readable } from 'stream';
 import { generateStudentsRandomId } from '../utils/index.js';
+import { Attendance } from '../models/index.js';
 
 
 
@@ -279,27 +280,23 @@ export const downloadAttendanceSheet = async (req, res, next) => {
         if (!students.length) {
             return next(new NotFoundError(`We can't find students registered by you in this particular school`));
         }
-        const count = 1;
         // Prepare data for the sheet
+        let count = 1;
         const schoolName = students[0]?.schoolId?.schoolName || 'Unknown School';
         const formattedData = students.map(student => ({
-            'S/N': count++,
+            "S/N": count++,
             StudentId: student.randomId,
             Surname: student.surname || '',
             'Other Names': student.otherNames || '',
             Class: student.presentClass || "",
-            'Week 1': '',
-            'Week 2': '',
-            'Week 3': '',
-            'Week 4': '',
-            'Week 5': '',
+            'Attendance Score': '',
         }));
 
         // Create the sheet with headers
         const rows = [
             [schoolName],                // Big header (School Name)
             [],                         // Blank row for spacing
-            ['StudentId', 'Surname', 'Other Names', 'Class', 'Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'], // Column headers
+            ['S/N', 'StudentId', 'Surname', 'Other Names', 'Class', 'Attendance Score'], // Column headers
             ...formattedData.map(row => Object.values(row)) // Data rows
         ];
 
@@ -337,9 +334,246 @@ export const downloadAttendanceSheet = async (req, res, next) => {
         });
 
     } catch (error) {
-        next(error);
+        return next(error);
     }
 };
+
+export const uploadAttendanceSheet = async (req, res, next) => {
+    try {
+        const { userID } = req.user;
+        const { week, month, year } = req.body;
+
+        console.log(req.parsedData);
+
+        const attendanceRecords = [];
+        let insertionCount = 0;
+        for (const row of req.parsedData) {
+            const isExist = await Attendance.findOne({
+                studentRandomId: row.StudentId,
+                month: month,
+                year: year,
+                attdWeek: week,
+            });
+
+            if (isExist) {
+                // If attendance exists, skip this record
+                console.log(`Attendance already exists for Student ID: ${row.StudentId}`);
+                continue;
+            }
+
+            attendanceRecords.push({
+                studentRandomId: row.StudentId, // First column
+                class: row.Class || '', // Class
+                AttendanceScore: row.AttendanceScore || '', // Week 1
+                enumeratorId: userID, // From function arguments
+                month: month, // From function arguments
+                year: year, // From function arguments
+                attdWeek: week,
+            });
+        }
+
+        if (attendanceRecords.length > 0) {
+            // Insert all new records into MongoDB
+            await Attendance.insertMany(attendanceRecords);
+        } else {
+            return res.status(400).json({ message: 'No new attendance records to upload.' });
+        }
+
+        res.status(200).json({ message: 'Attendance sheet uploaded  for ', totalInserted: attendanceRecords.length });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+
+
+
+
+// export const getStudentsAttendance = async (req, res, next) => {
+
+// try {
+//     console.log(req.url)
+//     const { userID, permissions } = req.user;
+
+//     const { year, week, month, school } = req.query;
+
+//     let basket;
+
+//     if (!permissions.includes('handle_registrars')) {
+//         basket = { enumeratorId: userID };
+
+
+
+
+//     } else {
+//         basket = {};
+//     }
+
+//     if (year) basket.year = year;
+//     if (week) basket.attdWeek = week;
+//     if (month) basket.month = month;
+//     if (school) basket.school = school;
+
+//     const attendance = await Attendance.find(basket).limit(50);
+
+
+
+//     return res.status(200).json({ attendance })
+// }
+// catch(err)
+// {
+//     console.log(err)
+// }
+
+// };
+
+export const getStudentsAttendance = async (req, res, next) => {
+    try {
+        console.log(req.url);
+        const { userID, permissions } = req.user;
+        const { year, week, month, school } = req.query;
+
+        // Filter conditions
+        let basket = {};
+
+        if (!permissions.includes('handle_registrars')) {
+            basket.enumeratorId = userID;
+        }
+
+        if (year) basket.year = parseInt(year, 10);; // Ensure year is numeric
+        if (week) basket.attdWeek = parseInt(week, 10);; // Ensure week is numeric
+        if (month) basket.month = month.toString();; // Ensure month is numeric
+        if (school) basket.school = school;
+
+        async function getDistinctSchoolIds(createdById) {
+            try {
+                const distinctSchoolIds = await Student.aggregate([
+                    {
+                        $match: {
+                            createdBy: mongoose.Types.ObjectId(createdById)
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            distinctSchoolIds: { $addToSet: "$schoolId" }
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            schoolIds: "$distinctSchoolIds"
+                        }
+                    }
+                ]);
+
+                if (distinctSchoolIds.length > 0) {
+                    return distinctSchoolIds[0].schoolIds;
+                } else {
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error fetching distinct school IDs:', error);
+                return [];
+            }
+        }
+
+        let distSchools;
+
+        getDistinctSchoolIds('678bd03ce7cabe382e503ab3')
+            .then(result => console.log('Distinct schoolIds:', result))
+            .catch(error => console.error(error));
+
+
+
+        console.log(basket);
+        // Aggregation pipeline
+        const attendance = await Attendance.aggregate([
+            {
+                $match: basket, // Match filters
+            },
+            {
+                $lookup: {
+                    from: 'students', // Collection name for Student schema
+                    localField: 'studentRandomId', // Field in Attendance
+                    foreignField: 'randomId', // Field in Student schema
+                    as: 'studentDetails', // Output field for joined data
+                },
+            },
+            {
+                $unwind: {
+                    path: '$studentDetails', // Flatten joined data
+                    // preserveNullAndEmptyArrays: true, // Keep attendance even if no student match
+                },
+            },
+
+            {
+                $lookup: {
+                    from: 'allschools', // Collection name for School schema
+                    localField: 'studentDetails.schoolId', // Field in Student schema
+                    foreignField: '_id', // Field in School schema
+                    as: 'schoolDetails', // Output field for joined data
+                },
+            },
+
+            {
+                $unwind: {
+                    path: '$schoolDetails', // Flatten joined school data
+                    preserveNullAndEmptyArrays: true, // Keep student data even if no school match
+                },
+            },
+            // {
+            //     $group: {
+            //         _id: '$schoolDetails._id', // Group by unique school ID
+            //         schoolName: { $first: '$schoolDetails.schoolName' }, // Get the school name
+            //     },
+            // },
+            {
+                $project: {
+                    _id: 0, // Exclude MongoDB's `_id`
+                    year: 1,
+                    attdWeek: 1,
+                    month: 1,
+                    class: 1,
+                    studentRanomId: 1,
+                    AttendanceScore: 1,
+                    'studentDetails.surname': 1,
+                    'studentDetails.otherNames': 1,
+                    'schoolDetails.schoolName': 1,
+                    'schoolDetails._id': 1,
+                    'studentDetails.presentClass': 1,
+                },
+            },
+        ])
+            .limit(50); // Limit results to 50
+
+
+
+
+        return res.status(200).json({ attendance });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 export const createStudent = async (req, res, next) => {
     try {

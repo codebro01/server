@@ -5,4 +5,5 @@ import {logSchema} from './logSchema.js';
 import { Registrar } from "./registrarSchema.js";
 import {Student} from "./studentsSchema.js"
 import { KogiLga } from './LgaSchema.js';
-export { Admin, Permissions,logSchema,  Roles, Registrar, Student, KogiLga};
+import {Attendance} from './attendanceSchema.js';
+export { Attendance, Admin, Permissions,logSchema,  Roles, Registrar, Student, KogiLga};

@@ -1,8 +1,9 @@
 import express from 'express';
-import { getAllStudents, filterAndDownload, updateStudent, filterEnumeratorsByStudents, deleteStudent, createStudent, downloadAttendanceSheet, enumeratorsByyHighestRegisteredStudents, lgasByHighestRegisteredStudents } from '../controllers/index.js';
+import { getAllStudents, filterAndDownload, updateStudent, filterEnumeratorsByStudents, deleteStudent, createStudent, downloadAttendanceSheet, enumeratorsByyHighestRegisteredStudents, lgasByHighestRegisteredStudents, uploadAttendanceSheet, getStudentsAttendance } from '../controllers/index.js';
 import { authMiddleware, authorizePermission } from '../middlewares/authenticationMiddleware.js';
-import { upload } from '../config/multer.js';
+import { upload, uploadXLSX} from '../config/multer.js';
 import { cloudinaryImageUploader } from '../utils/cloudinaryImageUploader.js';
+import { XLSXUploader } from '../utils/excelFileUploader.js';
 
 
 const router = express.Router();
@@ -20,7 +21,9 @@ router.route('/:id')
         next()
     }, updateStudent);
 router.get('/download', authorizePermission('handle_admins'), filterAndDownload)
-router.get('/attendance-sheet', authorizePermission('handle_students'), downloadAttendanceSheet);
+router.get('/view-attendance-sheet', authorizePermission(['handle_admins', 'handle_students']), getStudentsAttendance)
+router.get('/attendance-sheet',authMiddleware, authorizePermission('handle_students'), downloadAttendanceSheet);
+router.post('/upload-attendance-sheet', uploadXLSX.single('file'), XLSXUploader,  authorizePermission('handle_students'), uploadAttendanceSheet);
 router.get('/from-to', authorizePermission('handle_students'), filterEnumeratorsByStudents);
 router.get('/enumerators-student-count', authMiddleware, authorizePermission('handle_registrars'), enumeratorsByyHighestRegisteredStudents)
 router.get('/top-lga-count', authMiddleware, authorizePermission('handle_registrars'), lgasByHighestRegisteredStudents)

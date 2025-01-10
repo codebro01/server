@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import { type } from "os";
 
 
 const AttendanceSchema = new Schema({
@@ -10,30 +11,23 @@ const AttendanceSchema = new Schema({
         type: String,
         required: true,
     },
-    week_1: {
+    attdWeek: {
         type: Number
     },
-    week_2: {
-        type: Number
-    },
-    week_3: {
-        type: Number
-    },
-    week_4: {
-        type: Number
-    },
-    week_5: {
-        type: Number
-    },
+    class: { type: String },
     month: {
-        type: String
+        type: Number,
+
     },
     year: {
         type: Number
     },
+    AttendanceScore: {
+        type: String
+    },
     date: {
         type: Date,
-        default: new Date(Date.now)
+        default: Date.now,
     },
     weekNumber: {
         type: Number
@@ -45,11 +39,14 @@ const AttendanceSchema = new Schema({
         type: String
     },
     lockStatus: {
-        type: String
+        type: Boolean,
+        default: false
     }
 
 
-}, { timestamps: true })
+}, { timestamps: true });
+
+export const Attendance = model('Attendance', AttendanceSchema);
 
 
 

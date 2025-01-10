@@ -10,7 +10,7 @@ router.post('/register', authMiddleware, authorizePermission('handle_registrars'
 router.route('/login')
     .post(loginRegistrar)
 router.get('/', authMiddleware, authorizePermission('handle_registrars'), getAllRegistrars)
-router.get('/get-single/:id', authMiddleware, authorizePermission('handle_registrars'), getSingleRegistrar)
+router.get('/get-single/:id', authMiddleware, authorizePermission(['handle_registrars', 'handle_students']), getSingleRegistrar)
 router.patch('/update/:id', authMiddleware, authorizePermission('handle_registrars'), updateRegistrar);
 
 router.patch('/change-password', authMiddleware, changeRegistrarPassword);
