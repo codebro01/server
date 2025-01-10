@@ -17,13 +17,15 @@ const AttendanceSchema = new Schema({
     class: { type: String },
     month: {
         type: Number,
-
+        requireed: true,
     },
     year: {
-        type: Number
+        type: Number,   
+        required: true,
     },
     AttendanceScore: {
-        type: String
+        type: String,
+        required: true
     },
     date: {
         type: Date,

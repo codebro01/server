@@ -378,8 +378,8 @@ export const uploadAttendanceSheet = async (req, res, next) => {
         } else {
             return res.status(400).json({ message: 'No new attendance records to upload.' });
         }
-
-        res.status(200).json({ message: 'Attendance sheet uploaded  for ', totalInserted: attendanceRecords.length });
+        const count = attendanceRecords.length;
+        res.status(200).json({ message: `Attendance sheet uploaded  for ${count} persons`, totalInserted: attendanceRecords.length });
     } catch (error) {
         return next(error);
     }
