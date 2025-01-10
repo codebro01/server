@@ -139,11 +139,18 @@ export const filterAndDownload = async (req, res, next) => {
             return next(new NotFoundError("No students with the filtered data provided"));
         };
 
+        // const allKeys = new Set();
+        // students.forEach(student => {
+        //     Object.keys(student).forEach(key => allKeys.add(key));
+        // });
         const allKeys = new Set();
         students.forEach(student => {
-            Object.keys(student).forEach(key => allKeys.add(key));
+            Object.keys(student).forEach(key => {
+                if (key !== 'randomId') { // Exclude 'randomId' from headers
+                    allKeys.add(key);
+                }
+            });
         });
-
         const headers = Array.from(allKeys);
 
         const formattedData = students.map(student => {
