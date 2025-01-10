@@ -40,10 +40,11 @@ const limiter = rateLimit({
 
 
 const allowedOrigins = [
+    'https://www.enrolment.kogiagile.org',
+    'https://enrolment.kogiagile.org',
     'https://portal.kogiagile.org',
     'https://enrollment.kogiagile.org',
     'https://www.enrollment.kogiagile.org',
-    'https://enrolment.kogiagile.org',
     'https://www.portal.kogiagile.org',
     'www.portal.kogiagile.org',
     'https://www.cct.kogiagile.org',

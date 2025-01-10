@@ -279,10 +279,11 @@ export const downloadAttendanceSheet = async (req, res, next) => {
         if (!students.length) {
             return next(new NotFoundError(`We can't find students registered by you in this particular school`));
         }
-
+        const count = 1;
         // Prepare data for the sheet
         const schoolName = students[0]?.schoolId?.schoolName || 'Unknown School';
         const formattedData = students.map(student => ({
+            'S/N': count++,
             StudentId: student.randomId,
             Surname: student.surname || '',
             'Other Names': student.otherNames || '',
