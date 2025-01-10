@@ -84,7 +84,7 @@ export const filterAndDownload = async (req, res, next) => {
 
         // Create a basket object
         let basket;
-        if (!permissions.includes('handle_registrars') ) {
+        if (!permissions.includes('handle_registrars')) {
             basket = { createdBy: userID };
         } else {
             basket = {};
@@ -131,7 +131,7 @@ export const filterAndDownload = async (req, res, next) => {
             sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
         }
 
-        console.log(basket.createdAt )
+        console.log(basket.createdAt)
 
         const students = await Student.find(basket).populate('schoolId').populate('ward').populate('createdBy').sort(sort).collation({ locale: "en", strength: 2 }).lean();
 
@@ -143,22 +143,45 @@ export const filterAndDownload = async (req, res, next) => {
         // students.forEach(student => {
         //     Object.keys(student).forEach(key => allKeys.add(key));
         // });
-        const allKeys = new Set();
-        students.forEach(student => {
-            Object.keys(student).forEach(key => {
-                if (key !== 'randomId') { // Exclude 'randomId' from headers
-                    allKeys.add(key);
-                }
-            });
-        });
-        const headers = Array.from(allKeys);
 
+        const orderedHeaders = [
+            "_id",
+            'schoolId',
+            'surname',
+            'otherNames',
+            'gender',
+            'dob',
+            'presentClass',
+            'nationality',
+            'stateOfOrigin',
+            'lga',
+            'studentNin',
+            'lgaOfEnrollment',
+            "ward",
+            'communityName',
+            'residentialAddress',
+            'yearOfEnrollment',
+            'parentName',
+            'parentPhone',
+            'parentOccupation',
+            'parentNin',
+            'parentBvn',
+            'bankName',
+            'accountNumber',
+            'lastLogged',
+            'createdAt',
+            'createdBy'
+        ];
+
+        const headers = orderedHeaders.filter(header => students.some(student => student.hasOwnProperty(header)));
+
+        let count = 1;
         const formattedData = students.map(student => {
             const row = {};
             headers.forEach(header => {
                 // Populate fields like _id, schoolId, ward, createdBy with actual readable data
                 if (header === '_id') {
-                    row[header] = student._id.toString(); // Ensure _id is a string
+                    row[header] = count++; // Ensure _id is a string
                 } else if (header === 'createdBy' && student[header]) {
                     row[header] = student[header].fullName || ''; // Assuming 'name' is a field in the 'createdBy' collection
                 } else if (student[header] && header === 'schoolId') {
