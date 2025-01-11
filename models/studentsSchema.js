@@ -35,18 +35,13 @@ const StudentSchema = new mongoose.Schema({
         type: String,
         // required: [true, "Student NIN is required"]
         unique: true,
-        validate: {
-            validator: function (value) {
-                return value.length === 11; // Ensures the length is exactly 10
-            },
-            message: 'NIN must be exactly 11 characters long.'
-        }
+
     },
     ward: {
         type: String,
         required: [true, "Ward is required"]
     },
- 
+
     gender: {
         type: String,       // Set the default value
         required: true           // Make it required if necessary
@@ -141,12 +136,7 @@ const StudentSchema = new mongoose.Schema({
     accountNumber: {
         type: String,
         unique: true,
-        validate: {
-            validator: function (value) {
-                return value.length === 10; // Ensures the length is exactly 10
-            },
-            message: 'Account Number must be exactly 10 characters long.'
-        }    },
+    },
     passport: {
         type: String,
     },
