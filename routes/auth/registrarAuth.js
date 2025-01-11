@@ -1,5 +1,5 @@
 import express from 'express';
-import {loginWithUrl, createRegistrar, getSingleRegistrar, loginRegistrar, getAllRegistrars, changeRegistrarPassword, resetRegistrarPassword, updateRegistrar, toggleRegistrarStatus } from '../../controllers/index.js';
+import { loginWithUrl, createRegistrar, getSingleRegistrar, loginRegistrar, getAllRegistrars, changeRegistrarPassword, resetRegistrarPassword, updateRegistrar, toggleRegistrarStatus } from '../../controllers/index.js';
 import { upload } from "../../config/multer.js";
 import { cloudinaryImageUploader } from '../../utils/cloudinaryImageUploader.js';
 import { authorizePermission, authMiddleware } from '../../middlewares/authenticationMiddleware.js';
