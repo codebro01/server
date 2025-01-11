@@ -27,6 +27,9 @@ export const cloudinaryImageUploader = async (req, res, next, cloudinaryFolder) 
                 const stream = cloudinary.uploader.upload_stream(
                     {
                         folder: cloudinaryFolder,
+                        transformation: [
+                            { width: 100, height: 100, crop: 'scale' } // Scale image to 100x100
+                        ],
                         public_id: image.filename, // Optional: to specify public ID
                     },
                     (error, result) => {

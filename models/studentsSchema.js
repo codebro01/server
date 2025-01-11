@@ -21,19 +21,32 @@ const StudentSchema = new mongoose.Schema({
         type: String,
         required: [true, "Surname cannot be empty"]
     },
+    firstname: {
+        type: String,
+        required: [true, "Please fill other names"]
+
+    },
+    middlename: {
+        type: String,
+        required: [true, "Please fill other names"]
+
+    },
     studentNin: {
         type: String,
         // required: [true, "Student NIN is required"]
+        unique: true,
+        validate: {
+            validator: function (value) {
+                return value.length === 11; // Ensures the length is exactly 10
+            },
+            message: 'NIN must be exactly 11 characters long.'
+        }
     },
     ward: {
         type: String,
         required: [true, "Ward is required"]
     },
-    otherNames: {
-        type: String,
-        required: [true, "Please fill other names"]
-
-    },
+ 
     gender: {
         type: String,       // Set the default value
         required: true           // Make it required if necessary
@@ -92,7 +105,13 @@ const StudentSchema = new mongoose.Schema({
     },
     parentPhone: {
         type: String,
-        required: [true, "Parent/caregiver phone number cannot be empty"]
+        required: [true, "Parent/caregiver phone number cannot be empty"],
+        validate: {
+            validator: function (value) {
+                return value.length === 10; // Ensures the length is exactly 10
+            },
+            message: 'Phone Number must be exactly 11 characters long.'
+        }
     },
     parentName: {
         type: String,
@@ -100,17 +119,34 @@ const StudentSchema = new mongoose.Schema({
     },
     parentNin: {
         type: String,
-        // required: [true, "Parent/caregiver NIN cannot be empty"]
+        validate: {
+            validator: function (value) {
+                return value.length === 10; // Ensures the length is exactly 10
+            },
+            message: 'NIN must be exactly 11 characters long.'
+        }
     },
     parentBvn: {
         type: String,
+        validate: {
+            validator: function (value) {
+                return value.length === 10; // Ensures the length is exactly 10
+            },
+            message: 'BVN must be exactly 11 characters long.'
+        }
     },
     bankName: {
         type: String,
     },
     accountNumber: {
         type: String,
-    },
+        unique: true,
+        validate: {
+            validator: function (value) {
+                return value.length === 10; // Ensures the length is exactly 10
+            },
+            message: 'Account Number must be exactly 10 characters long.'
+        }    },
     passport: {
         type: String,
     },

@@ -149,7 +149,7 @@ export const filterAndDownload = async (req, res, next) => {
             "_id",
             'schoolId',
             'surname',
-            'otherNames',
+            'firstname',
             'gender',
             'dob',
             'presentClass',
@@ -287,7 +287,8 @@ export const downloadAttendanceSheet = async (req, res, next) => {
             "S/N": count++,
             StudentId: student.randomId,
             Surname: student.surname || '',
-            'Other Names': student.otherNames || '',
+            'Middlename': student.middlename || '',
+            'Firstname': student.firstname || '',
             Class: student.presentClass || "",
             'Attendance Score': '',
         }));
@@ -296,7 +297,7 @@ export const downloadAttendanceSheet = async (req, res, next) => {
         const rows = [
             [schoolName],                // Big header (School Name)
             [],                         // Blank row for spacing
-            ['S/N', 'StudentId', 'Surname', 'Other Names', 'Class', 'Attendance Score'], // Column headers
+            ['S/N', 'StudentId', 'Surname', 'Firstname', 'Middlename',  'Class', 'Attendance Score'], // Column headers
             ...formattedData.map(row => Object.values(row)) // Data rows
         ];
 
@@ -538,7 +539,7 @@ export const getStudentsAttendance = async (req, res, next) => {
                     studentRanomId: 1,
                     AttendanceScore: 1,
                     'studentDetails.surname': 1,
-                    'studentDetails.otherNames': 1,
+                    'studentDetails.firstname': 1,
                     'schoolDetails.schoolName': 1,
                     'schoolDetails._id': 1,
                     'studentDetails.presentClass': 1,
@@ -558,26 +559,9 @@ export const getStudentsAttendance = async (req, res, next) => {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export const createStudent = async (req, res, next) => {
     try {
-        // await Student.deleteMany({});
+        await Student.deleteMany({});
         const randomId = generateStudentsRandomId();
         console.log(randomId)
         const uploadedImage = req.uploadedImage;
@@ -600,7 +584,7 @@ export const createStudent = async (req, res, next) => {
 
         res.status(StatusCodes.OK).json({ student })
     } catch (error) {
-        next(error)
+        return next(error)
     }
 }
 
@@ -659,6 +643,6 @@ export const updateStudent = async (req, res, next) => {
         if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
         res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
     } catch (error) {
-        next(error)
+return next(error)
     }
 }
