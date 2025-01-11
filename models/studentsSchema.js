@@ -101,12 +101,7 @@ const StudentSchema = new mongoose.Schema({
     parentPhone: {
         type: String,
         required: [true, "Parent/caregiver phone number cannot be empty"],
-        validate: {
-            validator: function (value) {
-                return value.length === 10; // Ensures the length is exactly 10
-            },
-            message: 'Phone Number must be exactly 11 characters long.'
-        }
+   
     },
     parentName: {
         type: String,
@@ -114,21 +109,10 @@ const StudentSchema = new mongoose.Schema({
     },
     parentNin: {
         type: String,
-        validate: {
-            validator: function (value) {
-                return value.length === 10; // Ensures the length is exactly 10
-            },
-            message: 'NIN must be exactly 11 characters long.'
-        }
+  
     },
     parentBvn: {
         type: String,
-        validate: {
-            validator: function (value) {
-                return value.length === 10; // Ensures the length is exactly 10
-            },
-            message: 'BVN must be exactly 11 characters long.'
-        }
     },
     bankName: {
         type: String,

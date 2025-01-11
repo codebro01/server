@@ -561,7 +561,7 @@ export const getStudentsAttendance = async (req, res, next) => {
 
 export const createStudent = async (req, res, next) => {
     try {
-        await Student.deleteMany({});
+        // await Student.deleteMany({});
         const randomId = generateStudentsRandomId();
         console.log(randomId)
         const uploadedImage = req.uploadedImage;
