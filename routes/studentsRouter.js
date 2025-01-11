@@ -8,9 +8,8 @@ import { XLSXUploader } from '../utils/excelFileUploader.js';
 
 const router = express.Router();
 
-
 router.route('/')
-    .get(authorizePermission('handle_students'), getAllStudents)
+    .get(authMiddleware, authorizePermission('handle_students'), getAllStudents)
     .post(authorizePermission('handle_students'), upload.single('image'), (req, res, next) => cloudinaryImageUploader(req, res, next, 'admin_passport'), createStudent)
 router.route('/:id')
     .delete(authorizePermission('delete_operations'), deleteStudent)

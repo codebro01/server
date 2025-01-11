@@ -134,6 +134,10 @@ const StudentSchema = new mongoose.Schema({
         required: [true, "School cannot be empty"]
 
     },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
 
 
 }, { timestamps: true });

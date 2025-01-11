@@ -1,13 +1,13 @@
 import { Schema, model } from "mongoose";
 
 
-const AttendanceSchema = new Schema({
+const PaymentSchema = new Schema({
     studentRandomId: {
         type: String,
         required: true,
     },
     studentId : {
-        type: mSchema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: 'Student'
     },
 
@@ -56,7 +56,7 @@ const AttendanceSchema = new Schema({
     },
 }, { timestamps: true });
 
-export const Attendance = model('Attendance', AttendanceSchema);
+export const Payment = model('Payment', PaymentSchema);
 
 
 

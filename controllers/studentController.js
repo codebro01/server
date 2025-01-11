@@ -26,7 +26,7 @@ export const getAllStudents = async (req, res, next) => {
         const { userID, permissions } = req.user;
         //  if(!userID) return next(new NotAuthenticatedError('Not authorized to get students'));
 
-        const { ward, schoolId, lga, presentClass, sortBy, sortOrder, nationality, state, enumerator, dateFrom, dateTo, year, yearOfAdmission, classAtEnrollment, yearOfEnrollment } = req.query;
+        const { ward, schoolId, lgaOfEnrollment, presentClass, nationality, state, enumerator, dateFrom, dateTo, year, yearOfAdmission, classAtEnrollment, yearOfEnrollment } = req.query;
 
         // Create a basket object
         const { } = req.user
@@ -37,7 +37,7 @@ export const getAllStudents = async (req, res, next) => {
         } else {
             basket = {};
         }
-        if (lga) basket.lga = lga;
+        if (lgaOfEnrollment) basket.lgaOfEnrollment = lgaOfEnrollment;
         if (presentClass) basket.presentClass = presentClass;
         if (classAtEnrollment) basket.classAtEnrollment = classAtEnrollment;
         if (yearOfEnrollment) basket.yearOfEnrollment = yearOfEnrollment;
@@ -54,23 +54,17 @@ export const getAllStudents = async (req, res, next) => {
         if (year) basket.year = year;
         if (yearOfAdmission) basket.yearAdmitted = yearOfAdmission;
 
+        console.log(basket)
+        console.log(req.query)
 
-
-        let sort = { createdAt: -1 }; // Default sort
-
-        if (sortBy && sortOrder) {
-            sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-        }
-
-
-
-        const students = await Student.find(basket).populate('schoolId').populate('ward').sort(sort).collation({ locale: "en", strength: 2 }).lean();
+        const students = await Student.find(basket).populate('schoolId').populate('ward').sort('createdAt').collation({ locale: "en", strength: 2 }).lean();
 
 
         return res.status(StatusCodes.OK).json({ students, totalStudents: students.length });
     }
     catch (err) {
         console.log(err)
+        return next(err)
     }
 }
 
@@ -125,6 +119,12 @@ export const filterAndDownload = async (req, res, next) => {
             }
         }
 
+        console.log(req.url)
+        console.log(req.query)
+        console.log(basket)
+
+
+
         // if (yearOfAdmission) basket.yearAdmitted = yearOfAdmission;
 
         let sort = { createdAt: -1 }; // Default sort
@@ -132,7 +132,6 @@ export const filterAndDownload = async (req, res, next) => {
             sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
         }
 
-        console.log(basket.createdAt)
 
         const students = await Student.find(basket).populate('schoolId').populate('ward').populate('createdBy').sort(sort).collation({ locale: "en", strength: 2 }).lean();
 
@@ -140,16 +139,18 @@ export const filterAndDownload = async (req, res, next) => {
             return next(new NotFoundError("No students with the filtered data provided"));
         };
 
+
         // const allKeys = new Set();
         // students.forEach(student => {
         //     Object.keys(student).forEach(key => allKeys.add(key));
         // });
-
         const orderedHeaders = [
-            "_id",
+            'S/N',
+            'randomId',
             'schoolId',
             'surname',
             'firstname',
+            'middlename',
             'gender',
             'dob',
             'presentClass',
@@ -174,23 +175,22 @@ export const filterAndDownload = async (req, res, next) => {
             'createdBy'
         ];
 
-        const headers = orderedHeaders.filter(header => students.some(student => student.hasOwnProperty(header)));
+        const headers = ['S/N', ...orderedHeaders.filter(header => header !== 'S/N' && students.some(student => student.hasOwnProperty(header)))];
 
         let count = 1;
         const formattedData = students.map(student => {
             const row = {};
             headers.forEach(header => {
                 // Populate fields like _id, schoolId, ward, createdBy with actual readable data
-                if (header === '_id') {
+                if (header === 'S/N') {
                     row[header] = count++; // Ensure _id is a string
                 } else if (header === 'createdBy' && student[header]) {
                     row[header] = student[header].fullName || ''; // Assuming 'name' is a field in the 'createdBy' collection
                 } else if (student[header] && header === 'schoolId') {
-                    row[header] = student[header].schoolName || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                    row[header] = student[header].schoolCode || ''; // Assuming 'name' is a field in the 'createdBy' collection
                 } else if (student[header] && header === 'randomId') {
-                    student[header] && header === ''
-                    row[header] = ''; // Assuming 'name' is a field in the 'createdBy' collection
-
+                    // student[header] && header === 'studentId';
+                    row['studentId'] = student[header] || ''; // Assuming 'name' is a field in the 'createdBy' collection
                 } else {
                     row[header] = student[header] || ''; // Handle regular fields
                 }
@@ -297,7 +297,7 @@ export const downloadAttendanceSheet = async (req, res, next) => {
         const rows = [
             [schoolName],                // Big header (School Name)
             [],                         // Blank row for spacing
-            ['S/N', 'StudentId', 'Surname', 'Firstname', 'Middlename',  'Class', 'Attendance Score'], // Column headers
+            ['S/N', 'StudentId', 'Surname', 'Firstname', 'Middlename', 'Class', 'Attendance Score'], // Column headers
             ...formattedData.map(row => Object.values(row)) // Data rows
         ];
 
@@ -643,6 +643,6 @@ export const updateStudent = async (req, res, next) => {
         if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
         res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
     } catch (error) {
-return next(error)
+        return next(error)
     }
 }
