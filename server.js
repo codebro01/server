@@ -12,7 +12,7 @@ import { connectDB } from './db/connectDB.js';
 import { notFound } from './middlewares/notFoundMiddleware.js';
 import { customErrorHandler } from './middlewares/errorMiddleware.js';
 import cookieParser from 'cookie-parser'
-import { adminAuthRouter, registrarAuthRouter, studentsRouter, allSchoolsRouter, payrollSpecialistRouter } from './routes/index.js';
+import { adminAuthRouter, paymentRouter, registrarAuthRouter, studentsRouter, allSchoolsRouter, payrollSpecialistRouter } from './routes/index.js';
 import { authMiddleware, authorizePermission } from './middlewares/authenticationMiddleware.js';
 import session from 'express-session';
 import cors from 'cors';
@@ -123,6 +123,7 @@ app.use('/api/v1/payroll-specialists', payrollSpecialistRouter)
 app.use('/api/v1/student', authMiddleware, studentsRouter)
 app.use('/api/v1/all-schools', allSchoolsRouter)
 app.use('/api/v1/wards', wards);
+app.use('/api/v1/payment', paymentRouter);
 
 
 app.get("*", (req, res) => {

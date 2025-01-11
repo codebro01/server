@@ -1,36 +1,44 @@
-import { Payment } from "../models";
+import { Payment } from "../models/paymentSchema.js";
 
-export const getTotalAmountPaid = async (req, res, next)  =>{
-
+export const getTotalAmountPaid = async (req, res, next) => {
     try {
+        const currentYear = new Date().getFullYear(); // Get the current year dynamically
+        const startOfYear = new Date(`${currentYear}-01-01T00:00:00Z`);
+        const endOfYear = new Date(`${currentYear}-12-31T23:59:59Z`);
+
         const totalAmount = await Payment.aggregate([
             {
                 $match: {
-                    paymentStatus: 'Completed'  // Filtering only completed payments
-                }
+                    paymentStatus: 'Completed', // Filtering only completed payments
+                    paymentDate: {
+                        $gte: startOfYear,
+                        $lte: endOfYear,
+                    }, // Filtering payments within the current year
+                },
             },
             {
                 $group: {
-                    _id: null,  // Grouping by no specific field to get the total sum
-                    totalAmountPaid: { $sum: '$amount' }  // Summing up the amounts
-                }
+                    _id: null, // Grouping by no specific field to get the total sum
+                    totalAmountPaid: { $sum: '$amount' }, // Summing up the amounts
+                },
             },
             {
                 $project: {
-                    _id: 0,  // Remove _id field from the output
-                    totalAmountPaid: 1  // Returning the total amount
-                }
-            }
+                    _id: 0, // Remove _id field from the output
+                    totalAmountPaid: 1, // Returning the total amount
+                },
+            },
         ]);
 
-        res.status(200).json({ message: totalAmount[0]?.totalAmountPaid || 0}) 
+        res.status(200).json({ totalAmountPaid: totalAmount[0]?.totalAmountPaid || 0 });
     } catch (error) {
         console.error('Error fetching total amount paid:', error);
-        return 0;
+        res.status(500).json({ message: 'Error fetching total amount paid' });
     }
-}
+};
 
-export const  getLGAWithTotalPayments = async () => {
+
+export const getLGAWithTotalPayments = async () => {
     try {
         const lgaWithTotalPayments = await Payment.aggregate([
             {
@@ -66,7 +74,7 @@ export const  getLGAWithTotalPayments = async () => {
     }
 }
 
-async (req, res) => {
+export const viewPayments = async (req, res) => {
     try {
         const { page = 1, limit = 10, year, month, paymentStatus } = req.query;
 
@@ -119,4 +127,44 @@ async (req, res) => {
         return res.status(500).json({ message: 'An error occurred while fetching payments' });
     }
 };
+
+
+export const getTotalStudentsPaidMonthly = async (req, res, next) => {
+    try {
+        const { startOfMonth, endOfMonth } = getCurrentMonth();
+
+        const totalStudents = await Payment.aggregate([
+            {
+                $match: {
+                    paymentStatus: 'Completed', // Only include completed payments
+                    paymentDate: {
+                        $gte: startOfMonth, // Payments made on or after the start of the month
+                        $lte: endOfMonth,  // Payments made on or before the end of the month
+                    },
+                },
+            },
+            {
+                $group: {
+                    _id: '$studentId', // Group by studentId to count unique students
+                },
+            },
+            {
+                $count: 'totalStudentsPaid', // Count the number of unique student IDs
+            },
+        ]);
+
+        res.status(200).json({
+            message: 'Total students who paid for the current month',
+            totalStudentsPaid: totalStudents[0]?.totalStudentsPaid || 0, // Handle cases with no payments
+        });
+    } catch (error) {
+        console.error('Error fetching total students paid:', error);
+        res.status(500).json({ message: 'Error fetching data' });
+    }
+};
+
+
+
+
+
 

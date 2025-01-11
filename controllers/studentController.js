@@ -10,6 +10,7 @@ import fs, { copyFileSync } from 'fs';
 import { Readable } from 'stream';
 import { generateStudentsRandomId } from '../utils/index.js';
 import { Attendance } from '../models/index.js';
+import mongoose from 'mongoose';
 
 
 
@@ -31,10 +32,15 @@ export const getAllStudents = async (req, res, next) => {
         // Create a basket object
         const { } = req.user
         let basket;
-
-        if (!permissions.includes('handle_registrars')) {
+        if (!permissions.includes('handle_registrars', 'handle_payments')) {
             basket = { createdBy: userID };
-        } else {
+            } 
+            
+        if (permissions.includes('handle_payments')) {
+                basket = {}
+            }
+        
+        else  {
             basket = {};
         }
         if (lgaOfEnrollment) basket.lgaOfEnrollment = lgaOfEnrollment;
@@ -148,6 +154,7 @@ export const filterAndDownload = async (req, res, next) => {
             'S/N',
             'randomId',
             'schoolId',
+            'schoolName',
             'surname',
             'firstname',
             'middlename',
@@ -175,7 +182,7 @@ export const filterAndDownload = async (req, res, next) => {
             'createdBy'
         ];
 
-        const headers = ['S/N', ...orderedHeaders.filter(header => header !== 'S/N' && students.some(student => student.hasOwnProperty(header)))];
+        const headers = ['S/N', 'studentId', 'schoolId',  'schoolName', ...orderedHeaders.filter(header => header !== 'S/N' && header !== 'schoolName' && students.some(student => student.hasOwnProperty(header)))];
 
         let count = 1;
         const formattedData = students.map(student => {
@@ -191,7 +198,12 @@ export const filterAndDownload = async (req, res, next) => {
                 } else if (student[header] && header === 'randomId') {
                     // student[header] && header === 'studentId';
                     row['studentId'] = student[header] || ''; // Assuming 'name' is a field in the 'createdBy' collection
-                } else {
+                } else if (header === 'schoolName') {
+                    // student[header] && header === 'studentId';
+                    row[header] = student.schoolId?.schoolName || '';
+                } 
+                
+                else {
                     row[header] = student[header] || ''; // Handle regular fields
                 }
             });
@@ -297,7 +309,7 @@ export const downloadAttendanceSheet = async (req, res, next) => {
         const rows = [
             [schoolName],                // Big header (School Name)
             [],                         // Blank row for spacing
-            ['S/N', 'StudentId', 'Surname', 'Firstname', 'Middlename', 'Class', 'Attendance Score'], // Column headers
+            ['S/N', 'StudentId', 'Surname', 'Firstname', 'Middlename', 'Class', 'AttendanceScore'], // Column headers
             ...formattedData.map(row => Object.values(row)) // Data rows
         ];
 
@@ -443,47 +455,47 @@ export const getStudentsAttendance = async (req, res, next) => {
 
         if (year) basket.year = parseInt(year, 10);; // Ensure year is numeric
         if (week) basket.attdWeek = parseInt(week, 10);; // Ensure week is numeric
-        if (month) basket.month = month.toString();; // Ensure month is numeric
-        if (school) basket.school = school;
+        if (month) basket.month = parseInt(month, 10);; // Ensure month is numeric
+        if (school) basket.schoolId = school;
 
-        async function getDistinctSchoolIds(createdById) {
-            try {
-                const distinctSchoolIds = await Student.aggregate([
-                    {
-                        $match: {
-                            createdBy: mongoose.Types.ObjectId(createdById)
-                        }
-                    },
-                    {
-                        $group: {
-                            _id: null,
-                            distinctSchoolIds: { $addToSet: "$schoolId" }
-                        }
-                    },
-                    {
-                        $project: {
-                            _id: 0,
-                            schoolIds: "$distinctSchoolIds"
-                        }
-                    }
-                ]);
+        // async function getDistinctSchoolIds(createdById) {
+        //     try {
+        //         const distinctSchoolIds = await Student.aggregate([
+        //             {
+        //                 $match: {
+        //                     createdBy: mongoose.Types.ObjectId(createdById)
+        //                 }
+        //             },
+        //             {
+        //                 $group: {
+        //                     _id: null,
+        //                     distinctSchoolIds: { $addToSet: "$schoolId" }
+        //                 }
+        //             },
+        //             {
+        //                 $project: {
+        //                     _id: 0,
+        //                     schoolIds: "$distinctSchoolIds"
+        //                 }
+        //             }
+        //         ]);
 
-                if (distinctSchoolIds.length > 0) {
-                    return distinctSchoolIds[0].schoolIds;
-                } else {
-                    return [];
-                }
-            } catch (error) {
-                console.error('Error fetching distinct school IDs:', error);
-                return [];
-            }
-        }
+        //         if (distinctSchoolIds.length > 0) {
+        //             return distinctSchoolIds[0].schoolIds;
+        //         } else {
+        //             return [];
+        //         }
+        //     } catch (error) {
+        //         console.error('Error fetching distinct school IDs:', error);
+        //         return [];
+        //     }
+        // }
 
         let distSchools;
 
-        getDistinctSchoolIds('678bd03ce7cabe382e503ab3')
-            .then(result => console.log('Distinct schoolIds:', result))
-            .catch(error => console.error(error));
+        // getDistinctSchoolIds('678bd03ce7cabe382e503ab3')
+        //     .then(result => console.log('Distinct schoolIds:', result))
+        //     .catch(error => console.error(error));
 
 
 

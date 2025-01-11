@@ -17,10 +17,10 @@ export const authMiddleware = async (req, res, next) => {
     }
 
 
-    if (!token)  return next (new NotAuthenticatedError("Invalid Token Not authorized to access this route"));
+    if (!token) return next(new NotAuthenticatedError("Invalid Token Not authorized to access this route"));
     try {
         const decoded = verifyJWT({ token });
-        const { userID} = decoded;
+        const { userID } = decoded;
 
         const admin = await Admin.findById(userID).populate({
             path: 'roles', // Populate roles
@@ -45,24 +45,24 @@ export const authMiddleware = async (req, res, next) => {
         });;
 
         if (!admin && !registrar && !payrollSpecialist) next(new NotFoundError("User not found"));
-        if(admin) {
+        if (admin) {
 
-        const permissionsArray = admin.roles.flatMap(role => role.permissions.map(permission => permission.name));
-        admin.permissions = permissionsArray;
+            const permissionsArray = admin.roles.flatMap(role => role.permissions.map(permission => permission.name));
+            admin.permissions = permissionsArray;
             const { fullName, lastname, email, permissions, userID: _id } = admin;
             req.user = { fullName, email, permissions, userID };
         }
-        if(registrar) {
+        if (registrar) {
             const permissionsArray = registrar.roles.flatMap(role => role.permissions.map(permission => permission.name));
             registrar.permissions = permissionsArray
-        const {fullName, email, permissions, userID: _id} = registrar;
-        req.user = { fullName, email, permissions, userID };
+            const { fullName, email, permissions, userID: _id } = registrar;
+            req.user = { fullName, email, permissions, userID };
         }
-        if(payrollSpecialist) {
+        if (payrollSpecialist) {
             const permissionsArray = payrollSpecialist.roles.flatMap(role => role.permissions.map(permission => permission.name));
             payrollSpecialist.permissions = permissionsArray
-        const {fullName, email, permissions, userID: _id} = payrollSpecialist;
-        req.user = { fullName, email, permissions, userID };
+            const { fullName, email, permissions, userID: _id } = payrollSpecialist;
+            req.user = { fullName, email, permissions, userID };
         }
 
         next();
@@ -71,7 +71,7 @@ export const authMiddleware = async (req, res, next) => {
         if (err.name === 'JsonWebTokenError') {
             return next(new NotAuthenticatedError("Access Denied: Invalid token"));
         }
-       return next(new NotAuthenticatedError(`Access Denied: ${err}`))
+        return next(new NotAuthenticatedError(`Access Denied: ${err}`))
     }
 
 }
@@ -79,30 +79,32 @@ export const authMiddleware = async (req, res, next) => {
 
 
 export const authorizePermission = (requiredPermissions) => {
-  return async (req, res, next) => {
-    const user = req.user;
+    return (req, res, next) => {
+        const user = req.user;
 
-    if (!user || !user.permissions || user.permissions.length === 0) {
-      return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have any permissions' });
-    }
+        console.log(user);
 
-    // Ensure requiredPermissions is an array
-    if (!Array.isArray(requiredPermissions)) {
-      requiredPermissions = [requiredPermissions];
-    }
+        if (!user || !user.permissions || user.permissions.length === 0) {
+            return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have any permissions' });
+        }
 
-    // Check if user has at least one required permission
-    const hasPermission = requiredPermissions.some((permission) =>
-      user.permissions.includes(permission)
-    );
+        // Ensure requiredPermissions is an array
+        if (!Array.isArray(requiredPermissions)) {
+            requiredPermissions = [requiredPermissions];
+        }
 
-    if (!hasPermission) {
-      return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have the required permissions' });
-    }
+        // Check if user has at least one required permission
+        const hasPermission = requiredPermissions.some((permission) =>
+            user.permissions.includes(permission)
+        );
 
-    // User has at least one required permission, proceed
-    next();
-  };
+        if (!hasPermission) {
+            return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have the required permissions' });
+        }
+
+        // User has at least one required permission, proceed
+        next();
+    };
 };
 
 
