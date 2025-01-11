@@ -67,7 +67,7 @@ export const createRegistrar = async (req, res, next) => {
 
 export const loginRegistrar = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
+        let { email, password } = req.body;
 
 
         if (!email || !password) return next(new BadRequestError("Email and password is required"))
@@ -101,6 +101,45 @@ export const loginRegistrar = async (req, res, next) => {
         return next(err)
     }
 }
+
+
+export const loginWithUrl = async (req, res, next) => {
+    const {email, randomId} = req.query;
+
+    if(!email || !randomId) return next(new BadRequestError('email and randomId is required'));
+    const user = await Registrar.findOne({ email });
+
+    if (!user) return next(new NotFoundError('User not found'));
+    const isMatch = user.randomId == randomId;
+    console.log(user.randomId, randomId)
+    if (!isMatch) return next(new NotFoundError('invalid user'));
+    await user.populate({
+        path: 'roles', // Populate roles
+        populate: {
+            path: 'permissions', // Populate permissions within each role
+            select: 'name', // Select only the "name" field of permissions
+        },
+    });;
+    const tokenUser = createTokenUser(user);
+    const allPermissionNames = tokenUser.roles.flatMap(role =>
+        role.permissions.map(permission => permission.name)
+    );
+
+    const token = attachCookieToResponse({ user: tokenUser });
+    const sessionData = req.session;
+
+    addLogToUser(Registrar, user._id, 'Enumerator logged in', req.ip, {
+        sessionId: sessionData.id || 'unknown',
+        sessionCreated: sessionData.cookie._expires,
+        data: sessionData, // Add any relevant session details
+    });
+    res.status(StatusCodes.OK).json({ tokenUser, token, allPermissionNames });
+
+}
+
+
+
+
 
 export const updateRegistrar = async (req, res, next) => {
    try {
