@@ -32,14 +32,10 @@ export const getAllStudents = async (req, res, next) => {
         // Create a basket object
         const { } = req.user
         let basket;
-        if (!permissions.includes('handle_registrars', 'handle_payments')) {
+        if(permissions.includes('handle_students') && permissions.length === 1) {
             basket = { createdBy: userID };
-            } 
+        }
             
-        if (permissions.includes('handle_payments')) {
-                basket = {}
-            }
-        
         else  {
             basket = {};
         }

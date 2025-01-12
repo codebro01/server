@@ -38,7 +38,7 @@ export const getTotalAmountPaid = async (req, res, next) => {
 };
 
 
-export const getLGAWithTotalPayments = async () => {
+export const getLGAWithTotalPayments = async (req, res, next) => {
     try {
         const lgaWithTotalPayments = await Payment.aggregate([
             {
@@ -66,15 +66,15 @@ export const getLGAWithTotalPayments = async () => {
                 }
             }
         ]);
-
-        return lgaWithTotalPayments;
+        // lgaWithTotalPayments
+        res.status(200).json({message: "sent", lgaWithTotalPayments}) ;
     } catch (error) {
         console.error('Error fetching LGA with total payments:', error);
         return next(error)
     }
 }
 
-export const viewPayments = async (req, res) => {
+export const viewPayments = async (req, res, next) => {
     try {
         const { page = 1, limit = 10, year, month, paymentStatus } = req.query;
 
@@ -120,7 +120,8 @@ export const viewPayments = async (req, res) => {
             payments,
             totalPayments,
             totalPages: Math.ceil(totalPayments / limit),
-            currentPage: page
+            currentPage: page,
+            message: "aggregation successful"
         });
     } catch (error) {
         console.error('Error fetching payments:', error);
@@ -131,6 +132,14 @@ export const viewPayments = async (req, res) => {
 
 export const getTotalStudentsPaidMonthly = async (req, res, next) => {
     try {
+        const getCurrentMonth = () => {
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); // First day of the current month
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of the current month
+            return { startOfMonth, endOfMonth };
+        };
+
+
         const { startOfMonth, endOfMonth } = getCurrentMonth();
 
         const totalStudents = await Payment.aggregate([
