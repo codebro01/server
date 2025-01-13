@@ -126,9 +126,9 @@ app.use('/api/v1/wards', wards);
 app.use('/api/v1/payment', paymentRouter);
 
 
-app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "client/build", "index.html"));
-});
+// app.get("*", (req, res) => {
+//     res.sendFile(path.join(__dirname, "client/build", "index.html"));
+// });
 
 const PORT = process.env.PORT || 3100;
 
