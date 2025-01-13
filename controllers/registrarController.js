@@ -111,7 +111,6 @@ export const loginWithUrl = async (req, res, next) => {
 
     if (!user) return next(new NotFoundError('User not found'));
     const isMatch = user.randomId == randomId;
-    console.log(user.randomId, randomId)
     if (!isMatch) return next(new NotFoundError('invalid user'));
     await user.populate({
         path: 'roles', // Populate roles

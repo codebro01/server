@@ -82,7 +82,6 @@ export const authorizePermission = (requiredPermissions) => {
     return (req, res, next) => {
         const user = req.user;
 
-        console.log(user);
 
         if (!user || !user.permissions || user.permissions.length === 0) {
             return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have any permissions' });

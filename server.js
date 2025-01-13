@@ -109,13 +109,13 @@ app.use(session({
 
 //Routes 
 
-app.get('/', (req, res) => {
-    res.send('Welcome to kogi agile api........')
-})
-app.get('/lgas', async (req, res) => {
-    const kogilgas = await KogiLga.find({});
-    res.json({ kogilgas })
-})
+// app.get('/', (req, res) => {
+//     res.send('Welcome to kogi agile api........')
+// })
+// app.get('/lgas', async (req, res) => {
+//     const kogilgas = await KogiLga.find({});
+//     res.json({ kogilgas })
+// })
 
 app.use('/api/v1/admin-admin', adminAuthRouter)
 app.use('/api/v1/admin-enumerator', registrarAuthRouter)

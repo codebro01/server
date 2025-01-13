@@ -117,7 +117,7 @@ const StudentSchema = new mongoose.Schema({
     },
     accountNumber: {
         type: String,
-        unique: true,
+        // unique: true,
     },
     passport: {
         type: String,

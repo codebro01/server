@@ -20,12 +20,12 @@ const AttendanceSchema = new Schema({
         requireed: true,
     },
     year: {
-        type: Number,   
+        type: Number,
         required: true,
     },
     AttendanceScore: {
-        type: String,
-        required: true
+        type: Number,
+
     },
     date: {
         type: Date,

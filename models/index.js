@@ -7,7 +7,8 @@ import { Student } from "./studentsSchema.js"
 import { KogiLga } from './LgaSchema.js';
 import { Attendance } from './attendanceSchema.js';
 import { Payment } from './paymentSchema.js';
+import { PayrollSpecialist } from "./payRollSpecialistSchema.js";
 
 
 
-export { Attendance, Admin, Permissions, logSchema, Roles, Registrar, Student, KogiLga, Payment };
+export { Attendance, Admin, Permissions, logSchema, Roles, Registrar, Student, KogiLga, Payment, PayrollSpecialist };

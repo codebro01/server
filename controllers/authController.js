@@ -105,7 +105,6 @@ export const updateAdmin = async (req, res, next) => {
 
         if (!admin) return next(new NotFoundError('There is no registrar with id: ' + id));
 
-        console.log(req.body)
 
         const updatedAdmin = await Admin.findByIdAndUpdate({ _id: id }, { ...req.body }, { new: true, runValidators: true });
         // if (!updatedAdmin) return next(new Error('An Error occured while trying t    o update registrar'))
