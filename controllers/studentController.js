@@ -18,8 +18,6 @@ import mongoose from 'mongoose';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-
-
 export const getAllStudents = async (req, res, next) => {
     try {
         await Student.syncIndexes();
@@ -32,11 +30,11 @@ export const getAllStudents = async (req, res, next) => {
         // Create a basket object
         const { } = req.user
         let basket;
-        if(permissions.includes('handle_students') && permissions.length === 1) {
+        if (permissions.includes('handle_students') && permissions.length === 1) {
             basket = { createdBy: userID };
         }
-            
-        else  {
+
+        else {
             basket = {};
         }
         if (lgaOfEnrollment) basket.lgaOfEnrollment = lgaOfEnrollment;
@@ -178,7 +176,7 @@ export const filterAndDownload = async (req, res, next) => {
             'createdBy'
         ];
 
-        const headers = ['S/N', 'studentId', 'schoolId',  'schoolName', ...orderedHeaders.filter(header => header !== 'S/N' && header !== 'schoolName' && students.some(student => student.hasOwnProperty(header)))];
+        const headers = ['S/N', 'studentId', 'schoolId', 'schoolName', ...orderedHeaders.filter(header => header !== 'S/N' && header !== 'schoolName' && students.some(student => student.hasOwnProperty(header)))];
 
         let count = 1;
         const formattedData = students.map(student => {
@@ -197,8 +195,8 @@ export const filterAndDownload = async (req, res, next) => {
                 } else if (header === 'schoolName') {
                     // student[header] && header === 'studentId';
                     row[header] = student.schoolId?.schoolName || '';
-                } 
-                
+                }
+
                 else {
                     row[header] = student[header] || ''; // Handle regular fields
                 }
@@ -579,7 +577,7 @@ export const createStudent = async (req, res, next) => {
         const { secure_url } = uploadedImage;
         const { userID } = req.user;
         // const optional = req.body.ward || "others"
-        const student = new Student({ ...req.body, createdBy: userID, passport: secure_url, randomId: randomId })
+        const student = new Student({ ...req.body, createdBy: userID, passport: secure_url, randomId: randomId, src: "Web" })
         await student.save();
 
         const sessionData = req.session;

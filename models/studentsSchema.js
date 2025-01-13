@@ -23,13 +23,11 @@ const StudentSchema = new mongoose.Schema({
     },
     firstname: {
         type: String,
-        required: [true, "Please fill other names"]
+        required: [true, "Firstname cannnot be empty"]
 
     },
     middlename: {
         type: String,
-        required: [true, "Please fill other names"]
-
     },
     studentNin: {
         type: String,
@@ -138,6 +136,11 @@ const StudentSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+
+    src: {
+        type: String,
+        required: true,
+    }
 
 
 }, { timestamps: true });
