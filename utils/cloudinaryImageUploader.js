@@ -66,12 +66,12 @@ export const cloudinaryImageUploader = async (req, res, next, cloudinaryFolder) 
         console.log("Processing image:", image);
 
         // Validate image type and size
-        const maxSize = 1024 * 1024 * 2; // 2MB
+        const maxSize = 1024 * 1024 * 10; // 2MB
         if (!['image/jpeg', 'image/png'].includes(image.mimetype)) {
             return next(new BadRequestError('Please upload a JPEG or PNG file'));
         }
         if (image.size > maxSize) {
-            return next(new BadRequestError('Image file too big, max size is 2MB'));
+            return next(new BadRequestError('Image file too big, max size is 10MB'));
         }
 
         // Upload the image to Cloudinary
