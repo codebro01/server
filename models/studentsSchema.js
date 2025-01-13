@@ -32,7 +32,7 @@ const StudentSchema = new mongoose.Schema({
     studentNin: {
         type: String,
         // required: [true, "Student NIN is required"]
-        unique: true,
+        // unique: true,
 
     },
     ward: {

@@ -867,10 +867,10 @@ export const createStudent = async (req, res, next) => {
         const { secure_url } = uploadedImage;
         const { userID } = req.user;
         // const optional = req.body.ward || "others"
-        const {accountNumber} = req.body;
+        const { accountNumber } = req.body;
 
-        const isExistingAccountNumber = await Student.find({accountNumber});
-        if(isExistingAccountNumber) return next(new BadRequestError(`Account Number ${accountNumber} already exists`))
+        const isExistingAccountNumber = await Student.findOne({ accountNumber });
+        if (isExistingAccountNumber && accountNumber !== '') return next(new BadRequestError(`Account Number ${accountNumber} already exists`))
         const student = new Student({ ...req.body, createdBy: userID, passport: secure_url, randomId: randomId, src: "Web" })
         await student.save();
 
@@ -889,79 +889,27 @@ export const createStudent = async (req, res, next) => {
 }
 
 
-
 export const deleteStudent = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const student = await Student.findById({ _id: id });
+        const student = await Student.findOne({ randomId: id });
+
         if (!student) return next(new NotFoundError('There is no student with id: ' + id));
-        const deletedStudent = await Student.findByIdAndDelete({ _id: id });
-        if (!deletedStudent) return next(new Error('An Error while trying to delete student'))
-        res.status(StatusCodes.OK).json({ deletedStudent: deletedStudent });
+
+        const deletedStudent = await Student.findOneAndDelete({ randomId: id });
+
+        if (!deletedStudent) return next(new Error('An Error occurred while trying to delete student'));
+
+        // Fetch the current list of all students again after deletion
+        const remainingStudents = await Student.find({});
+
+        res.status(StatusCodes.OK).json({ remainingStudents });
     } catch (error) {
-        next(error)
+        return next(error);
     }
-}
+};
 
 
-// export const updateStudent = async (req, res, next) => {
-
-
-
-//     console.log({ "image": req.uploadedImage })
-//     console.log(req.file)
-
-//     const { id } = req.params;
-//     const student = await Student.findById({ _id: id });
-//     if (!student) return next(new NotFoundError('There is no student with id: ' + id));
-
-
-
-//         const registrationTime = new Date(student.createdAt);
-//         const currentTime = new Date();
-
-//         const timeDifference = (currentTime - registrationTime) / (1000 * 60 * 60);
-
-//         if (timeDifference < 5) {
-
-//             if (req.file && req.uploadedImage) {
-//                 const { secure_url } = req.uploadedImage;
-
-//                 const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body, passport: secure_url }, { new: true, runValidators: true });
-//                 if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
-//                 console.log({ "image": req.uploadedImage })
-//                 console.log(req.file)
-//                 return res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
-//             }
-//             const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body }, { new: true, runValidators: true });
-//             if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
-//             console.log({ "image": req.uploadedImage })
-//             console.log(req.file)
-//             return res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
-
-
-
-//         }
-
-//         if (timeDifference > 5) return res.status(StatusCodes.BAD_REQUEST).json({ message: "Students can only be updated after first 5 hours of registration" });
-
-
-
-//     try {
-
-//         // if (!uploadedImage) {
-//         //     return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
-//         // }
-
-
-
-//         // const updatedStudent = await Student.findByIdAndUpdate({ _id: id }, { ...req.body, passport: secure_url }, { new: true, runValidators: true });
-//         // if (!updatedStudent) return next(new Error('An Error while trying to delete student'))
-//         // res.status(StatusCodes.OK).json({ updatedStudent: updatedStudent });
-//     } catch (error) {
-//         return next(error)
-//     }
-// }
 export const updateStudent = async (req, res, next) => {
     console.log("Entering updateStudent...");
     console.log("Uploaded Image:", req.uploadedImage);
