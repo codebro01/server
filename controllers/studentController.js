@@ -203,35 +203,37 @@ export const filterAndDownload = async (req, res, next) => {
 
         const headers = ['S/N', 'studentId', 'schoolId', 'schoolName', ...orderedHeaders.filter(header => header !== 'S/N' && header !== 'schoolName' && students.some(student => student.hasOwnProperty(header)))];
 
+
+        const uppercaseHeaders = headers.map(header => header.toUpperCase());
+
+
         let count = 1;
         const formattedData = students.map(student => {
             const row = {};
-            headers.forEach(header => {
+            headers.forEach((header, index) => {
+                const uppercaseHeader = uppercaseHeaders[index];
                 // Populate fields like _id, schoolId, ward, createdBy with actual readable data
                 if (header === 'S/N') {
-                    row[header] = count++; // Ensure _id is a string
+                    row[uppercaseHeader] = count++; // Ensure _id is a string
                 } else if (header === 'createdBy' && student[header]) {
-                    row[header] = student[header].fullName || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                    row[uppercaseHeader] = student[header].fullName?.toUpperCase() || '';
                 } else if (student[header] && header === 'schoolId') {
-                    row[header] = student[header].schoolCode || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                    row[uppercaseHeader] = student[header].schoolCode?.toUpperCase() || '';
                 } else if (student[header] && header === 'randomId') {
-                    // student[header] && header === 'studentId';
-                    row['studentId'] = student[header] || ''; // Assuming 'name' is a field in the 'createdBy' collection
+                    row['STUDENTID'] = student[header].toUpperCase() || '';
                 } else if (header === 'schoolName') {
-                    // student[header] && header === 'studentId';
-                    row[header] = student.schoolId?.schoolName || '';
-                }
-
-                else {
-                    row[header] = student[header] || ''; // Handle regular fields
+                    row[uppercaseHeader] = student.schoolId?.schoolName?.toUpperCase() || '';
+                } else {
+                    row[uppercaseHeader] = student[header]?.toString().toUpperCase() || '';
                 }
             });
             return row;
         });
 
+
         // Create a workbook and worksheet
         const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: uppercaseHeaders });
 
         // Append the worksheet to the workbook
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
@@ -474,10 +476,6 @@ export const uploadAttendanceSheet = async (req, res, next) => {
         }
 
 
-
-
-
-
         const minLength = 20;
         const maxLength = 25;
 
@@ -544,47 +542,6 @@ export const uploadAttendanceSheet = async (req, res, next) => {
     }
 };
 
-
-
-
-
-// export const getStudentsAttendance = async (req, res, next) => {
-
-// try {
-//     console.log(req.url)
-//     const { userID, permissions } = req.user;
-
-//     const { year, week, month, school } = req.query;
-
-//     let basket;
-
-//     if (!permissions.includes('handle_registrars')) {
-//         basket = { enumeratorId: userID };
-
-
-
-
-//     } else {
-//         basket = {};
-//     }
-
-//     if (year) basket.year = year;
-//     if (week) basket.attdWeek = week;
-//     if (month) basket.month = month;
-//     if (school) basket.school = school;
-
-//     const attendance = await Attendance.find(basket).limit(50);
-
-
-
-//     return res.status(200).json({ attendance })
-// }
-// catch(err)
-// {
-//     console.log(err)
-// }
-
-// };
 
 export const getStudentsAttendance = async (req, res, next) => {
     try {
@@ -699,10 +656,10 @@ export const getStudentsAttendance = async (req, res, next) => {
                 return acc;
             }, {});
 
+            console.log('getting attendance')
+            console.log(totalScores)
 
-            // console.log(totalScores)
-
-
+            console.log(attendance)
             // const orderedHeaders = [
             //     'S/N',
 
