@@ -495,7 +495,7 @@ export const uploadAttendanceSheet = async (req, res, next) => {
             //     continue;
             // }
             try {
-                if (row.AttendanceScore >= existingData.data[0].min && row.AttendanceScore <= existingData.data[0].max && row.AttendanceScore != '' || row.AttendanceScore != 0) {
+                if (row.AttendanceScore === 0 || row.AttendanceScore === existingData.data[0].min || row.AttendanceScore === existingData.data[0].max || (row.AttendanceScore >= existingData.data[0].min && row.AttendanceScore <= existingData.data[0].max)) {
                     attendanceRecords.push({
                         studentRandomId: row.StudentId, // First column
                         class: row.Class || '', // Class
@@ -546,7 +546,7 @@ export const uploadAttendanceSheet = async (req, res, next) => {
 export const getStudentsAttendance = async (req, res, next) => {
     try {
         const { userID, permissions } = req.user;
-        const { year, week, month, school } = req.query;
+        const { year, month, schoolId, ward, lgaOfEnrollment, presentClass } = req.query;
 
         // Filter conditions
         let basket = {};
@@ -564,18 +564,19 @@ export const getStudentsAttendance = async (req, res, next) => {
         }
 
         if (year) basket.year = parseInt(year, 10);; // Ensure year is numeric
-        if (week) basket.attdWeek = parseInt(week, 10);; // Ensure week is numeric
-        if (month) basket.month = parseInt(month, 10);; // Ensure month is numeric
-        if (school) basket.schoolId = school;
+        if (month) basket.month = parseInt(month, 10);; // Ensure week is numeric
+        if (schoolId) basket.schoolId = schoolId;; // Ensure month is numeric
+        if (presentClass) basket.presentClass = presentClass;
+        if (ward) basket.ward = ward;
+        if (lgaOfEnrollment) basket.lgaOfEnrollment = lgaOfEnrollment;
 
+        console.log('getting query and url');
 
-
-        console.log(basket);
+        console.log(req.query)
+        console.log(req.url)
 
         const attendance = await Attendance.aggregate([
-            {
-                $match: basket, // Match filters
-            },
+
             {
                 $lookup: {
                     from: 'students', // Collection name for Student schema
@@ -603,6 +604,20 @@ export const getStudentsAttendance = async (req, res, next) => {
                     preserveNullAndEmptyArrays: true, // Keep student data even if no school match
                 },
             },
+            ...(ward || lgaOfEnrollment || presentClass || schoolId || month || year
+                ? [
+                    {
+                        $match: {
+                            ...(ward && { 'studentDetails.ward': ward }),
+                            ...(lgaOfEnrollment && { 'studentDetails.lgaOfEnrollment': lgaOfEnrollment }),
+                            ...(presentClass && { 'studentDetails.presentClass': presentClass }),
+                            ...(schoolId && { 'schoolDetails.schoolId': schoolId }),
+                            ...(month && { month }),
+                            ...(year && { year }),
+                        },
+                    },
+                ]
+                : []),
             {
                 $project: {
                     _id: 0, // Exclude MongoDB's `_id`
@@ -631,6 +646,8 @@ export const getStudentsAttendance = async (req, res, next) => {
             },
         ]);
 
+        if (attendance.length < 1) return next(new NotFoundError("No record found"))
+
 
         if (permissions.includes('handle_students') && permissions.length === 1) {
 
@@ -640,26 +657,22 @@ export const getStudentsAttendance = async (req, res, next) => {
 
 
             // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            const totalScores = attendance.reduce((acc, record) => {
-                // Check if studentId exists in the accumulator
-                console.log(record)
-                if (!acc[record.studentRandomId]) {
-                    acc[record.studentRandomId] = {
-                        studentId: record.studentRandomId,
-                        totalAttendanceScore: 0, // Initialize as a number
-                    };
-                }
+            // const totalScores = attendance.reduce((acc, record) => {
+            //     // Check if studentId exists in the accumulator
+            //     if (!acc[record.studentRandomId]) {
+            //         acc[record.studentRandomId] = {
+            //             studentId: record.studentRandomId,
+            //             totalAttendanceScore: 0, // Initialize as a number
+            //         };
+            //     }
 
-                // Add the attendance score to the student's total
-                acc[record.studentRandomId].totalAttendanceScore += Number(record.AttendanceScore) || 0;
+            //     // Add the attendance score to the student's total
+            //     acc[record.studentRandomId].totalAttendanceScore += Number(record.AttendanceScore) || 0;
 
-                return acc;
-            }, {});
+            //     return acc;
+            // }, {});
 
-            console.log('getting attendance')
-            console.log(totalScores)
 
-            console.log(attendance)
             // const orderedHeaders = [
             //     'S/N',
 
@@ -727,6 +740,7 @@ export const getStudentsAttendance = async (req, res, next) => {
                         bankName: studentDetails.bankName,
                         accountNumber: studentDetails.accountNumber,
                         schoolName: schoolDetails.schoolName,
+
                     };
                 }
 
@@ -773,6 +787,8 @@ export const getStudentsAttendance = async (req, res, next) => {
                 BankName: student.bankName,
                 AccountNumber: student.accountNumber,
                 SchoolName: student.schoolName,
+                amount: "",
+                status: ""
             }));
 
             const workbook = XLSX.utils.book_new();
@@ -807,7 +823,7 @@ export const getStudentsAttendance = async (req, res, next) => {
         }
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ message: 'Internal Server Error' });
+        return next(err);
     }
 };
 
@@ -882,17 +898,17 @@ export const updateStudent = async (req, res, next) => {
             // return next(new NotFoundError('There is no student with id: ' + id)); // Ensure early return
         }
 
-        const registrationTime = new Date(student.createdAt);
-        const currentTime = new Date();
-        const timeDifference = (currentTime - registrationTime) / (1000 * 60 * 60); // Calculate time difference in hours
-        console.log("Time Difference (hours):", timeDifference);
+        // const registrationTime = new Date(student.createdAt);
+        // const currentTime = new Date();
+        // const timeDifference = (currentTime - registrationTime) / (1000 * 60 * 60); // Calculate time difference in hours
+        // console.log("Time Difference (hours):", timeDifference);
 
-        if (timeDifference >= 5) {
-            console.log("Time difference exceeded, rejecting update...");
-            return next(
-                new BadRequestError('Students can only be updated within the first 5 hours of registration')
-            ); // Ensure early return
-        }
+        // if (timeDifference >= 5) {
+        //     console.log("Time difference exceeded, rejecting update...");
+        //     return next(
+        //         new BadRequestError('Students can only be updated within the first 5 hours of registration')
+        //     ); // Ensure early return
+        // }
 
         console.log("Within update time window...");
         let updatedStudent;

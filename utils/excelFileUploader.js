@@ -15,6 +15,8 @@ export const XLSXUploader = (req, res, next) => {
             return res.status(400).send('No file uploaded.');
         }
 
+        console.log("file:" + file)
+
         const uploadDir = path.join(__dirname, 'uploads');
 
         // Ensure the uploads directory exists
@@ -32,6 +34,7 @@ export const XLSXUploader = (req, res, next) => {
         // Convert the first sheet to JSON
         const sheetName = workbook.SheetNames[0];
         let sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 }); // Read as 2D array
+        console.log(sheetData)
 
         // Remove the first two rows
         sheetData = sheetData.slice(2);
@@ -47,6 +50,8 @@ export const XLSXUploader = (req, res, next) => {
                 return acc;
             }, {});
         });
+
+        console.log('data: ' + data)
 
         req.parsedData = data;
 
