@@ -660,70 +660,7 @@ export const getStudentsAttendance = async (req, res, next) => {
 
 
             // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            // const totalScores = attendance.reduce((acc, record) => {
-            //     // Check if studentId exists in the accumulator
-            //     if (!acc[record.studentRandomId]) {
-            //         acc[record.studentRandomId] = {
-            //             studentId: record.studentRandomId,
-            //             totalAttendanceScore: 0, // Initialize as a number
-            //         };
-            //     }
-
-            //     // Add the attendance score to the student's total
-            //     acc[record.studentRandomId].totalAttendanceScore += Number(record.AttendanceScore) || 0;
-
-            //     return acc;
-            // }, {});
-
-
-            // const orderedHeaders = [
-            //     'S/N',
-
-            //     'studentRandomId',
-            //     'schoolId',
-            //     'schoolName',
-            //     'totalAttendanceScore',
-            //     'year', 
-            //     'month', 
-            //     'surname',
-            //     'firstname',
-            //     'middlename',
-            //     'presentClass',
-            //     'nationality',
-            //     'stateOfOrigin',
-            //     'lga',
-            //     'studentNin',
-            //     'lgaOfEnrollment',
-            //     "ward",
-            //     'communityName',
-            //     'residentialAddress',
-            //     'yearOfEnrollment',
-            //     'parentName',
-            //     'parentPhone',
-            //     'parentOccupation',
-            //     'parentNin',
-            //     'parentBvn',
-            //     'bankName',
-            //     'accountNumber',
-            //     'lastLogged',
-            //     'createdAt',
-            //     'createdBy'
-            // ];
-
-            // const mergedData = attendance.map(student => {
-            //     const totalScore = totalScores[student.studentId]?.totalAttendanceScore || 0;
-            //     return {
-            //         ...student,
-            //         totalAttendanceScore: totalScore,
-            //     };
-            // });
-
-            // console.log(totalScores)
-            // console.log(mergedData.length)
-
-            // const headers = ['S/N', 'studentId', 'schoolId', 'schoolName', ...orderedHeaders.filter(header => header !== 'S/N' && header !== 'schoolName' && mergedData.some(student => student.hasOwnProperty(header)))];
-
-            // let count = 1;
+         
 
             const aggregatedData = attendance.reduce((acc, curr) => {
                 const { studentRandomId, AttendanceScore, month, year, studentDetails, schoolDetails } = curr;
@@ -776,7 +713,8 @@ export const getStudentsAttendance = async (req, res, next) => {
             // });
 
             // Create a workbook and worksheet
-            const formattedData = Object.values(aggregatedData).map((student) => ({
+            const formattedData = Object.values(aggregatedData).map((student, index) => ({
+                'S/N': index + 1, // Add serial number starting from 1
                 StudentID: student.studentRandomId,
                 Surname: student.surname,
                 Firstname: student.firstname,
@@ -795,7 +733,22 @@ export const getStudentsAttendance = async (req, res, next) => {
             }));
 
             const workbook = XLSX.utils.book_new();
-            const worksheet = XLSX.utils.json_to_sheet(formattedData);
+            const worksheet = XLSX.utils.json_to_sheet([]); // Start with an empty worksheet
+
+            // Add a custom heading that spans across columns
+            const heading = [['Student Attendance Summary']];
+            XLSX.utils.sheet_add_aoa(worksheet, heading, { origin: 'A1' });
+
+            // Merge cells for the heading
+            worksheet['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: Object.keys(formattedData[0]).length - 1 } } // Merge heading across all columns
+            ];
+
+            // Add a blank row for spacing
+            XLSX.utils.sheet_add_aoa(worksheet, [[]], { origin: 'A2' });
+
+            // Add the actual data with headers starting from row 3
+            XLSX.utils.sheet_add_json(worksheet, formattedData, { origin: 'A3', header: Object.keys(formattedData[0]) });
 
             // Append the worksheet to the workbook
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
@@ -829,6 +782,96 @@ export const getStudentsAttendance = async (req, res, next) => {
         return next(err);
     }
 };
+
+export const importPaymentSheet = async (req, res, next) => {
+    console.log(req.parsedData);
+    console.log('just looped over uploaded sheet');
+
+    try {
+
+        const existingData = await fetchExistingData();
+        console.log(existingData);
+        const { userID } = req.user;
+        const {  month, year } = req.body;
+
+
+        let attendance;
+
+        for (const existingStudents of req.parsedData) {
+
+            attendance = await Attendance.find({ studentRandomId: existingStudents.StudentId, attdWeek: week, month, year });
+            console.log(attendance)
+
+        }
+
+
+        const minLength = 20;
+        const maxLength = 25;
+
+        const attendanceRecords = [];
+        let insertionCount = 0;
+        for (const row of req.parsedData) {
+            const isExist = await Attendance.findOne({
+                studentRandomId: row.StudentId,
+                month: month,
+                year: year,
+                attdWeek: week,
+            });
+
+            // if (isExist) {
+            //     // If attendance exists, skip this record
+            //     console.log(`Attendance already exists for Student ID: ${row.StudentId}`);
+            //     continue;
+            // }
+            try {
+                if (row.AttendanceScore === 0 || row.AttendanceScore === existingData.data[0].min || row.AttendanceScore === existingData.data[0].max || (row.AttendanceScore >= existingData.data[0].min && row.AttendanceScore <= existingData.data[0].max)) {
+                    attendanceRecords.push({
+                        studentRandomId: row.StudentId, // First column
+                        class: row.Class || '', // Class
+                        AttendanceScore: row.AttendanceScore || 0, // Week 1
+                        enumeratorId: userID, // From function arguments
+                        month: month, // From function arguments
+                        year: year, // From function arguments
+                        attdWeek: week,
+                    });
+
+                }
+
+                else {
+                    console.log(`'value bigger smaller than 20  or greater than 25' for : ${row.StudentId}`);
+
+                }
+            }
+            catch (err) {
+                return next(err)
+            }
+
+
+        }
+
+        // console.log(attendanceRecords)
+        // console.log(attendance.length)
+        if (attendanceRecords.length > 0 && !attendance.length) {
+            // Insert all new records into MongoDB
+            await Attendance.insertMany(attendanceRecords);
+        } else if (attendanceRecords.length > 0 && attendance.length) {
+            const updateCount = attendance.length;
+            await Attendance.updateMany({ randomId: req.parsedData.StudentId, week, month, year }, { ...attendanceRecords }, { new: true, runValidators: true });
+            return res.status(200).json({ message: `Attendance sheet updated  for ${updateCount} persons`, totalInserted: attendanceRecords.length });
+
+        }
+        else {
+            return res.status(400).json({ message: 'No new attendance records to upload.' });
+        }
+        const count = attendanceRecords.length;
+
+        res.status(200).json({ message: `Attendance sheet uploaded  for ${count} persons`, totalInserted: attendanceRecords.length });
+    } catch (error) {
+        return next(error);
+    }
+
+
+}
 
 
 export const createStudent = async (req, res, next) => {

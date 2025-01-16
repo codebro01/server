@@ -15,9 +15,7 @@ const PaymentSchema = new Schema({
         type: String,
         required: true,
     },
-    attdWeek: {
-        type: Number
-    },
+
     class: { type: String },
     month: {
         type: Number,
@@ -30,6 +28,9 @@ const PaymentSchema = new Schema({
     AttendanceScore: {
         type: String,
         required: true
+    },
+    status: {
+        type: String,
     },
     date: {
         type: Date,
