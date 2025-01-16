@@ -333,6 +333,9 @@ export const filterAndView = async (req, res, next) => {
             sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
         }
 
+        // console.log(req.query, req.url);
+
+
 
         const students = await Student.find(basket).populate('schoolId').populate('ward').populate('createdBy').sort(sort).collation({ locale: "en", strength: 2 }).lean();
 

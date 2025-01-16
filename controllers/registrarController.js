@@ -5,6 +5,7 @@ import { StatusCodes } from "http-status-codes";
 import { BadRequestError } from "../errors/badRequestError.js";
 import { NotFoundError } from "../errors/notFoundError.js";
 import { Roles } from "../models/rolesSchema.js";
+import { NotAuthenticatedError } from "../errors/notAuthenticatedError.js";
 
 
 export const getAllRegistrars = async (req, res, next) => {
@@ -73,6 +74,7 @@ export const loginRegistrar = async (req, res, next) => {
         if (!email || !password) return next(new BadRequestError("Email and password is required"))
         const user = await Registrar.findOne({ email });
         if (!user) return next(new NotFoundError('User not found'));
+        if(user.isActive === false) return next(new NotAuthenticatedError('User has been disabled'));
         const isMatch = await user.comparePWD(password);
         if (!isMatch) return next(new NotFoundError('invalid credentials'));
         await user.populate({
