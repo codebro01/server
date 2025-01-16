@@ -32,7 +32,7 @@ export const customErrorHandler = (err, req, res, next) => {
     }
 
     // Log the error for debugging
-    console.error("Error encountered:", err);
+    // console.error("Error encountered:", err);
 
     // Send the error response
     return res.status(errObj.statusCode).json({ message: errObj.message });
