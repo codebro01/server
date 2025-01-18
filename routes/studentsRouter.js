@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllStudents, importPaymentSheet, filterAndView, filterAndDownload, updateStudent, filterEnumeratorsByStudents, deleteStudent, createStudent, downloadAttendanceSheet, enumeratorsByyHighestRegisteredStudents, lgasByHighestRegisteredStudents, uploadAttendanceSheet, getStudentsAttendance } from '../controllers/index.js';
+import { getAllStudents, importPaymentSheet, filterAndView, filterAndDownload, updateStudent, filterEnumeratorsByStudents, deleteStudent, createStudent, downloadAttendanceSheet, enumeratorsByyHighestRegisteredStudents, lgasByHighestRegisteredStudents, uploadAttendanceSheet, getStudentsAttendance, getStudentsStats, totalStudentsByEnumerators } from '../controllers/index.js';
 import { authMiddleware, authorizePermission } from '../middlewares/authenticationMiddleware.js';
 import { upload, uploadXLSX } from '../config/multer.js';
 import { cloudinaryImageUploader } from '../utils/cloudinaryImageUploader.js';
@@ -20,6 +20,7 @@ router.route('/:id').patch(authMiddleware, authorizePermission('handle_students'
     next();
 }, updateStudent);
 router.get('/download', authorizePermission('handle_admins'), filterAndDownload)
+router.get('/get-students-stats', authorizePermission('handle_registrars'), getStudentsStats)
 router.get('/admin-view-all-students', authorizePermission('handle_admins'), filterAndView)
 router.get('/view-attendance-sheet', authorizePermission(['handle_admins', 'handle_payments', 'handle_students']), getStudentsAttendance)
 router.get('/attendance-sheet', authMiddleware, authorizePermission('handle_students'), downloadAttendanceSheet);
@@ -28,6 +29,7 @@ router.post('/upload-payment-sheet', uploadXLSX.single('file'), XLSXUploader, au
 router.get('/from-to', authorizePermission('handle_students'), filterEnumeratorsByStudents);
 router.get('/enumerators-student-count', authMiddleware, authorizePermission('handle_registrars'), enumeratorsByyHighestRegisteredStudents)
 router.get('/top-lga-count', authMiddleware, authorizePermission('handle_registrars'), lgasByHighestRegisteredStudents)
+router.get('/total-students-by-enumerators', authMiddleware, authorizePermission('handle_registrars'), totalStudentsByEnumerators)
 export default router;
 
 

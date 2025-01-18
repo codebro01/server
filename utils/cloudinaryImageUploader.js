@@ -63,7 +63,6 @@ export const cloudinaryImageUploader = async (req, res, next, cloudinaryFolder) 
             return next(new BadRequestError('Please select an image file'));
         }
 
-        console.log("Processing image:", image);
 
         // Validate image type and size
         const maxSize = 1024 * 1024 * 10; // 2MB
@@ -96,7 +95,6 @@ export const cloudinaryImageUploader = async (req, res, next, cloudinaryFolder) 
 
         const result = await uploadToCloudinary(image.buffer);
 
-        console.log("Cloudinary upload result:", result);
 
         // Attach Cloudinary result to the request
         req.uploadedImage = result;

@@ -46,15 +46,15 @@ const __dirname = dirname(__filename);
 
 export const getAllStudents = async (req, res, next) => {
     try {
-        await Student.syncIndexes();
+        // await Student.syncIndexes();
 
         const { userID, permissions } = req.user;
         //  if(!userID) return next(new NotAuthenticatedError('Not authorized to get students'));
 
-        const { ward, schoolId, lgaOfEnrollment, presentClass, nationality, state, enumerator, dateFrom, dateTo, year, yearOfAdmission, classAtEnrollment, yearOfEnrollment } = req.query;
+        const { ward, schoolId, lgaOfEnrollment, presentClass, nationality, state, enumerator, dateFrom, dateTo, year, yearOfAdmission, classAtEnrollment, yearOfEnrollment, page, limit } = req.query;
+
 
         // Create a basket object
-        const { } = req.user
         let basket;
         if (permissions.includes('handle_students') && permissions.length === 1) {
             basket = { createdBy: userID };
@@ -81,16 +81,168 @@ export const getAllStudents = async (req, res, next) => {
         if (yearOfAdmission) basket.yearAdmitted = yearOfAdmission;
 
 
+        const skip = (page - 1) * limit;
+        const total = await Student.countDocuments();
 
-        const students = await Student.find(basket).populate('schoolId').populate('ward').sort('-updatedAt').collation({ locale: "en", strength: 2 }).lean();
 
 
-        return res.status(StatusCodes.OK).json({ students, totalStudents: students.length });
+        const students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lgaOfEnrollment presentClass ward bankName yearOfEnrollment ').skip(skip).limit(Number(limit)).lean();
+
+        console.log(req.query);
+        return res.status(StatusCodes.OK).json({ students, total });
     }
     catch (err) {
         console.log(err)
         return next(err)
     }
+}
+
+export const getStudentsStats = async (req, res, next) => {
+
+    try {
+        const pipeline = [
+            // Lookup the school details for each student
+            {
+                $lookup: {
+                    from: "allschools", // Name of the schools collection
+                    localField: "schoolId", // Reference field in students
+                    foreignField: "_id", // Field in schools collection
+                    as: "schoolDetails", // Name for the joined field
+                },
+            },
+            // Unwind the school details array
+            {
+                $unwind: {
+                    path: "$schoolDetails",
+                    preserveNullAndEmptyArrays: true, // In case some students don't have a school reference
+                },
+            },
+            // Stage 1: Calculate Total Students
+            {
+                $facet: {
+                    totalStudents: [
+                        { $count: "total" }, // Count all students
+                    ],
+                    studentsByClass: [
+                        {
+                            $group: {
+                                _id: "$presentClass", // Group by class
+                                totalStudentsInClass: { $sum: 1 }, // Count the number of students in each class
+                            },
+                        },
+                        {
+                            $project: {
+                                className: "$_id", // Rename the field for clarity
+                                totalStudentsInClass: 1, // Retain the count
+                                _id: 0, // Exclude the original `_id` field
+                            },
+                        },
+                    ],
+                    distinctSchools: [
+                        {
+                            $group: {
+                                _id: "$schoolId", // Group by unique school ID
+                            },
+                        },
+                        {
+                            $count: "totalDistinctSchools", // Count unique schools
+                        },
+                    ],
+                },
+            },
+        ];
+
+
+        const schoolCategoryPipeline = [
+            // Step 1: Lookup school details
+            {
+                $lookup: {
+                    from: "allschools", // Name of the schools collection
+                    localField: "schoolId", // Reference field in students
+                    foreignField: "_id", // Field in schools collection
+                    as: "schoolDetails",
+                },
+            },
+            // Step 2: Unwind school details to process individual records
+            {
+                $unwind: {
+                    path: "$schoolDetails",
+                    preserveNullAndEmptyArrays: false, // Exclude students without valid school references
+                },
+            },
+            // Step 3: Get unique schools
+            {
+                $group: {
+                    _id: "$schoolId", // Group by school ID to ensure uniqueness
+                    schoolCategory: { $first: "$schoolDetails.schoolCategory" }, // Keep school category
+                },
+            },
+            // Step 4: Categorize schools and calculate totals
+            {
+                $facet: {
+
+                    totalSecondarySchools: [
+                        {
+                            $match: {
+                                schoolCategory: { $in: ["Public JSS", "Public JSS/SSS"] },
+                            },
+                        },
+                        { $count: "total" }, // Count all secondary schools
+                    ],
+                    totalPrimarySchools: [
+                        {
+                            $match: {
+                                schoolCategory: { $in: ["ECCDE", "ECCDE AND PRIMARY", "PRIMARY"] },
+                            },
+                        },
+                        { $count: "total" }, // Count all primary schools
+                    ],
+                    totalScienceAndVocational: [
+                        {
+                            $match: {
+                                schoolCategory: { $eq: "Science & Vocational" },
+                            },
+                        },
+                        { $count: "total" }, // Count all science and vocational schools
+                    ],
+                },
+            },
+            // Step 5: Reshape the results
+            {
+                $project: {
+                    totalPrimarySchools: {
+                        $arrayElemAt: ["$totalPrimarySchools.total", 0],
+                    },
+                    totalSecondarySchools: {
+                        $arrayElemAt: ["$totalSecondarySchools.total", 0],
+                    },
+                    totalScienceAndVocational: {
+                        $arrayElemAt: ["$totalScienceAndVocational.total", 0],
+                    },
+                },
+            },
+        ];
+
+
+        const results = await Student.aggregate(pipeline);
+        const schoolCategory = await Student.aggregate(schoolCategoryPipeline)
+        const recentTwentyStudents = await Student.find({}).limit(20).sort('createdAt')
+
+        res.status(200).json({ results, schoolCategory, recentTwentyStudents });
+    }
+    catch (err) {
+        console.log(err)
+        return next(err)
+    }
+
+
+
+
+
+
+
+
+
 }
 
 export const filterAndDownload = async (req, res, next) => {
@@ -382,6 +534,82 @@ export const filterEnumeratorsByStudents = async (req, res, next) => {
 
 }
 
+export const totalStudentsByEnumerators = async (req, res, next) => {
+    try {
+        // const pipeline = [
+        //     // Step 1: Group by enumerator ID and count students
+        //     {
+        //         $group: {
+        //             _id: "$createdBy", // Group by the enumerator's ID
+        //             totalStudents: { $sum: 1 } // Count the students
+        //         }
+        //     },
+        //     // Step 2: Lookup enumerator details from the enumerators collection
+        //     {
+        //         $lookup: {
+        //             from: "registrars", // The name of the enumerators collection
+        //             localField: "_id", // The field from the previous stage (_id = createdAt)
+        //             foreignField: "_id", // The field in the enumerators collection (_id)
+        //             as: "enumeratorDetails" // The output array field
+        //         }
+        //     },
+        //     // Step 3: Unwind the enumeratorDetails array (optional, if one-to-one mapping)
+        //     {
+        //         $unwind: "$enumeratorDetails"
+        //     },
+        //     // Step 4: Format the output
+        //     {
+        //         $project: {
+        //             _id: 0, // Exclude the `_id` field if not needed
+        //             enumeratorId: "$_id", // Include the enumerator ID
+        //             totalStudents: 1, // Include the total count of students
+        //             "enumeratorDetails.randomId": 1, // Include enumerator `_id`
+        //             "enumeratorDetails.fullName": 1, // Include enumerator name
+        //             "enumeratorDetails.email": 1 // Include enumerator email                
+        //             }
+        //     }
+        // ]
+
+        const pipeline = [
+            // Step 1: Lookup enumerator details from the registrars collection
+            {
+                $lookup: {
+                    from: "students", // The name of the students collection
+                    localField: "_id", // The enumerator's ID in the registrars collection
+                    foreignField: "createdBy", // The field in the students collection referencing the enumerator
+                    as: "studentDetails" // The output array of students
+                }
+            },
+            // Step 2: Add a field to count the number of students for each enumerator
+            {
+                $addFields: {
+                    totalStudents: { $size: "$studentDetails" } // Count the size of the studentDetails array
+                }
+            },
+            // Step 3: Format the output to match the required structure
+            {
+                $project: {
+                    _id: 0, // Exclude the `_id` field if not needed
+                    enumeratorId: "$_id", // Include the enumerator ID
+                    totalStudents: 1, // Include the total count of students
+                    "enumeratorDetails.randomId": "$_id", // Include enumerator `_id`
+                    "enumeratorDetails.fullName": "$fullName", // Include enumerator name
+                    "enumeratorDetails.email": "$email" // Include enumerator email
+                }
+            }
+        ];
+
+
+
+
+        const countStudentsByEnumerators = await Registrar.aggregate(pipeline);
+
+        res.status(200).json({ countStudentsByEnumerators })
+    } catch (error) {
+        return next(error)
+    }
+}
+
 export const downloadAttendanceSheet = async (req, res, next) => {
     try {
         const { userID } = req.user;
@@ -573,10 +801,10 @@ export const getStudentsAttendance = async (req, res, next) => {
         if (ward) basket.ward = ward;
         if (lgaOfEnrollment) basket.lgaOfEnrollment = lgaOfEnrollment;
 
-        console.log('getting query and url');
+        // console.log('getting query and url');
 
-        console.log(req.query)
-        console.log(req.url)
+        // console.log(req.query)
+        // console.log(req.url)
 
         const attendance = await Attendance.aggregate([
 
@@ -660,7 +888,7 @@ export const getStudentsAttendance = async (req, res, next) => {
 
 
             // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         
+
 
             const aggregatedData = attendance.reduce((acc, curr) => {
                 const { studentRandomId, AttendanceScore, month, year, studentDetails, schoolDetails } = curr;
@@ -792,7 +1020,7 @@ export const importPaymentSheet = async (req, res, next) => {
         const existingData = await fetchExistingData();
         console.log(existingData);
         const { userID } = req.user;
-        const {  month, year } = req.body;
+        const { month, year } = req.body;
 
 
         let attendance;
@@ -921,7 +1149,7 @@ export const deleteStudent = async (req, res, next) => {
 
         // Fetch the current list of all students again after deletion
         const remainingStudents = await Student.find({});
-
+        console.log('student deleted')
         res.status(StatusCodes.OK).json({ remainingStudents });
     } catch (error) {
         return next(error);

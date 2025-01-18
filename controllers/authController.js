@@ -39,7 +39,6 @@ export const createAdmin = async (req, res, next) => {
         if (count) {
 
             const superAdminRole = await Roles.findOne({ role: 'super_admin' });
-            console.log(superAdminRole)
             const generatedRandomId = generateRandomId();
             const superAdmin = await Admin.create({ ...req.body, roles: [superAdminRole._id], randomId: generatedRandomId, passport: secure_url });
             if (!superAdmin) return next(new BadRequestError('An error occured creating admin'))
