@@ -594,7 +594,9 @@ export const totalStudentsByEnumerators = async (req, res, next) => {
                     totalStudents: 1, // Include the total count of students
                     "enumeratorDetails.randomId": "$_id", // Include enumerator `_id`
                     "enumeratorDetails.fullName": "$fullName", // Include enumerator name
-                    "enumeratorDetails.email": "$email" // Include enumerator email
+                    "enumeratorDetails.email": "$email", // Include enumerator email
+                    "enumeratorDetails.isActive": "$isActive" // Include enumerator email
+                    
                 }
             }
         ];
@@ -613,9 +615,7 @@ export const totalStudentsByEnumerators = async (req, res, next) => {
 export const downloadAttendanceSheet = async (req, res, next) => {
     try {
         const { userID } = req.user;
-        console.log(req.user)
         const currentUser = await Registrar.findOne({ _id: userID });
-        console.log(currentUser)
         const filterBasket = { createdBy: userID };
         const { schoolId } = req.query;
 
@@ -692,7 +692,6 @@ export const uploadAttendanceSheet = async (req, res, next) => {
     try {
 
         const existingData = await fetchExistingData();
-        console.log(existingData);
         const { userID } = req.user;
         const { week, month, year } = req.body;
 
@@ -702,7 +701,6 @@ export const uploadAttendanceSheet = async (req, res, next) => {
         for (const existingStudents of req.parsedData) {
 
             attendance = await Attendance.find({ studentRandomId: existingStudents.StudentId, attdWeek: week, month, year });
-            console.log(attendance)
 
         }
 
@@ -1012,13 +1010,10 @@ export const getStudentsAttendance = async (req, res, next) => {
 };
 
 export const importPaymentSheet = async (req, res, next) => {
-    console.log(req.parsedData);
-    console.log('just looped over uploaded sheet');
 
     try {
 
         const existingData = await fetchExistingData();
-        console.log(existingData);
         const { userID } = req.user;
         const { month, year } = req.body;
 
@@ -1028,7 +1023,6 @@ export const importPaymentSheet = async (req, res, next) => {
         for (const existingStudents of req.parsedData) {
 
             attendance = await Attendance.find({ studentRandomId: existingStudents.StudentId, attdWeek: week, month, year });
-            console.log(attendance)
 
         }
 
@@ -1106,7 +1100,6 @@ export const createStudent = async (req, res, next) => {
     try {
         // await Student.deleteMany({});
         const randomId = generateStudentsRandomId();
-        console.log(randomId)
         const uploadedImage = req.uploadedImage;
         if (!uploadedImage) {
             return res.status(StatusCodes.BAD_REQUEST).json({ error: "No uploaded image found" });
@@ -1149,7 +1142,6 @@ export const deleteStudent = async (req, res, next) => {
 
         // Fetch the current list of all students again after deletion
         const remainingStudents = await Student.find({});
-        console.log('student deleted')
         res.status(StatusCodes.OK).json({ remainingStudents });
     } catch (error) {
         return next(error);
@@ -1158,18 +1150,14 @@ export const deleteStudent = async (req, res, next) => {
 
 
 export const updateStudent = async (req, res, next) => {
-    console.log("Entering updateStudent...");
-    console.log("Uploaded Image:", req.uploadedImage);
-    console.log("File:", req.file);
+
 
     const { id } = req.params;
 
     try {
-        console.log("Fetching student by ID...");
         const student = await Student.findById({ _id: id });
         if (!student) {
-            console.log("Student not found");
-            // return next(new NotFoundError('There is no student with id: ' + id)); // Ensure early return
+            return next(new NotFoundError('There is no student with id: ' + id)); // Ensure early return
         }
 
         // const registrationTime = new Date(student.createdAt);
@@ -1184,10 +1172,8 @@ export const updateStudent = async (req, res, next) => {
         //     ); // Ensure early return
         // }
 
-        console.log("Within update time window...");
         let updatedStudent;
         if (req.file && req.uploadedImage) {
-            console.log("Processing file update...");
             const { secure_url } = req.uploadedImage;
 
             updatedStudent = await Student.findByIdAndUpdate(
@@ -1196,7 +1182,6 @@ export const updateStudent = async (req, res, next) => {
                 { new: true, runValidators: true }
             );
         } else {
-            console.log("No file uploaded. Updating other fields...");
             updatedStudent = await Student.findByIdAndUpdate(
                 { _id: id },
                 { ...req.body },
@@ -1204,7 +1189,6 @@ export const updateStudent = async (req, res, next) => {
             );
         }
 
-        console.log("Updated student:", updatedStudent);
         return res.status(StatusCodes.OK).json({ updatedStudent }); // Ensure response is sent only once
     } catch (error) {
         console.error("Error occurred:", error);

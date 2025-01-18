@@ -110,7 +110,7 @@ export const loginWithUrl = async (req, res, next) => {
 
     if(!email || !randomId) return next(new BadRequestError('email and randomId is required'));
     const user = await Registrar.findOne({ email });
-
+    if(user.isActive === false) return next(new NotAuthenticatedError('User has been disabled'))
     if (!user) return next(new NotFoundError('User not found'));
     const isMatch = user.randomId == randomId;
     if (!isMatch) return next(new NotFoundError('invalid user'));
