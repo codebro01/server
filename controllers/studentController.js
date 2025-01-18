@@ -86,7 +86,7 @@ export const getAllStudents = async (req, res, next) => {
 
 
 
-        const students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lgaOfEnrollment presentClass ward bankName yearOfEnrollment ').skip(skip).limit(Number(limit)).lean();
+        const students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lgaOfEnrollment presentClass ward bankName yearOfEnrollment passport ').skip(skip).limit(Number(limit)).lean();
 
         console.log(req.query);
         return res.status(StatusCodes.OK).json({ students, total });
