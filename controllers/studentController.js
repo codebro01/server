@@ -88,7 +88,6 @@ export const getAllStudents = async (req, res, next) => {
 
         const students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lgaOfEnrollment presentClass ward bankName yearOfEnrollment passport ').skip(skip).limit(Number(limit)).lean();
 
-        console.log(req.query);
         return res.status(StatusCodes.OK).json({ students, total });
     }
     catch (err) {
@@ -596,7 +595,7 @@ export const totalStudentsByEnumerators = async (req, res, next) => {
                     "enumeratorDetails.fullName": "$fullName", // Include enumerator name
                     "enumeratorDetails.email": "$email", // Include enumerator email
                     "enumeratorDetails.isActive": "$isActive" // Include enumerator email
-                    
+
                 }
             }
         ];
@@ -783,7 +782,7 @@ export const getStudentsAttendance = async (req, res, next) => {
         // if (!permissions.includes('handle_registrars')) {
         //     basket.enumeratorId = userID;
         // }
-
+        console.log(userID)
         if (permissions.includes('handle_students') && permissions.length === 1) {
             basket = { createdBy: userID };
         }
@@ -798,6 +797,8 @@ export const getStudentsAttendance = async (req, res, next) => {
         if (presentClass) basket.presentClass = presentClass;
         if (ward) basket.ward = ward;
         if (lgaOfEnrollment) basket.lgaOfEnrollment = lgaOfEnrollment;
+
+        console.log(basket)
 
         // console.log('getting query and url');
 
