@@ -501,7 +501,7 @@ export const filterAndView = async (req, res, next) => {
         // console.log(req.query)
         // console.log(basket)
 
-
+        console.log(req.query)
 
         // if (yearOfAdmission) basket.yearAdmitted = yearOfAdmission;
 
@@ -1408,5 +1408,40 @@ export const updateStudent = async (req, res, next) => {
         return next(error); // Pass errors to the error handler
     }
 };
+
+export const getDuplicateRecord = async( req, res, next) =>{
+try {
+
+    const {
+        surname,
+        firstname,
+        middlename,
+        lgaOfEnrollment,
+        schoolId,
+        presentClass,
+        parentPhone,
+    } = req.body;
+
+    // Build the query array with $regex for partial matching
+    const query = [];
+
+    if (surname) query.push({ surname: { $regex: surname, $options: "i" } });
+    if (firstname) query.push({ firstname: { $regex: firstname, $options: "i" } });
+    if (middlename) query.push({ middlename: { $regex: middlename, $options: "i" } });
+    if (lgaOfEnrollment) query.push({ lgaOfEnrollment: { $regex: lgaOfEnrollment, $options: "i" } });
+    if (schoolId) query.push({ schoolId: { $regex: schoolId, $options: "i" } });
+    if (presentClass) query.push({ presentClass: { $regex: presentClass, $options: "i" } });
+    if (parentPhone) query.push({ parentPhone: { $regex: parentPhone, $options: "i" } });
+
+    // Use $or if there are query conditions
+    const students = await Students.find(query.length ? { $or: query } : {});
+
+    return res.status(200).json({ students })
+
+}
+catch(err) {
+    return next(err)
+}
+}
 
 

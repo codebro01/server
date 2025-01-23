@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.get('/get-total-amount-paid', authMiddleware, authorizePermission('handle_payments'), getTotalAmountPaid);
 router.get('/get-lga-with-total-payments', authMiddleware, authorizePermission('handle_payments'), getLGAWithTotalPayments);
-router.get('/view-payments', authMiddleware, authorizePermission('handle_payments'), viewPayments);
+router.get('/view-payments', authMiddleware, authorizePermission(['handle_payments', 'handle_registrars']), viewPayments);
 router.get('/view-payments-by-lga', authMiddleware, authorizePermission('handle_payments'), getPaymentsByLGA);
 router.get('/get-total-amount-paid-monthly', authMiddleware, authorizePermission('handle_payments'), getTotalStudentsPaidMonthly);
 router.get('/get-total-student-paid', authMiddleware, authorizePermission('handle_payments'), getTotalStudentPaid);
