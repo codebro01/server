@@ -11,7 +11,7 @@ router.route('/login')
     .post(loginRegistrar)
 router.route('/login/webview')
     .get(loginWithUrl)
-router.get('/', authMiddleware, authorizePermission('handle_registrars'), getAllRegistrars)
+router.get('/', authMiddleware, authorizePermission(['handle_payments', 'handle_registrars']), getAllRegistrars)
 router.get('/get-single/:id', authMiddleware, authorizePermission(['handle_registrars', 'handle_students']), getSingleRegistrar)
 router.patch('/update/:id', authMiddleware, authorizePermission('handle_registrars'), updateRegistrar);
 

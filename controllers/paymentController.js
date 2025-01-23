@@ -1,3 +1,4 @@
+import { Attendance } from "../models/attendanceSchema.js";
 import { Payment } from "../models/paymentSchema.js";
 
 export const getTotalAmountPaid = async (req, res, next) => {
@@ -67,7 +68,7 @@ export const getLGAWithTotalPayments = async (req, res, next) => {
             }
         ]);
         // lgaWithTotalPayments
-        res.status(200).json({message: "sent", lgaWithTotalPayments}) ;
+        res.status(200).json({ message: "sent", lgaWithTotalPayments });
     } catch (error) {
         console.error('Error fetching LGA with total payments:', error);
         return next(error)
@@ -76,52 +77,32 @@ export const getLGAWithTotalPayments = async (req, res, next) => {
 
 export const viewPayments = async (req, res, next) => {
     try {
-        const { page = 1, limit = 10, year, month, paymentStatus } = req.query;
+        const { page, limit, year, month, paymentStatus, LGA, ward, schoolName, totalAttendanceScore, bankName, presentClass, amount } = req.query;
 
         // Build the aggregation pipeline with filters
-        const query = {};
-        if (year) query.year = parseInt(year);  // Filter by year
-        if (month) query.month = parseInt(month);  // Filter by month
-        if (paymentStatus) query.paymentStatus = paymentStatus;  // Filter by payment status
+        const basket = {};
+        if (year) basket.year = parseInt(year);  // Filter by year
+        if (month) basket.month = parseInt(month);  // Filter by month
+        if (paymentStatus) basket.paymentStatus = paymentStatus;  // Filter by payment status
+        if (totalAttendanceScore) basket.totalAttendanceScore = totalAttendanceScore;  // Filter by payment status
+        if (bankName) basket.bankName = bankName;  // Filter by payment status
+        if (LGA) basket.LGA = LGA;  // Filter by payment status
+        if (ward) basket.ward = ward;  // Filter by payment status
+        if (schoolName) basket.schoolName = schoolName;  // Filter by payment status
+        if (presentClass) basket.class = presentClass;  // Filter by payment status
+        if (amount) basket.amount = parseInt(amount);  // Filter by payment status
+        const pageNumber = parseInt(page, 10) || 1;
+        const limitNumber = parseInt(limit, 10) || 200;
 
-        // Aggregation query to fetch payments
-        const payments = await Payment.aggregate([
-            { $match: query },
-            {
-                $lookup: {
-                    from: 'students',
-                    localField: 'studentId',
-                    foreignField: '_id',
-                    as: 'studentInfo'
-                }
-            },
-            { $unwind: '$studentInfo' },
-            {
-                $project: {
-                    paymentId: '$_id',
-                    studentName: '$studentInfo.name',
-                    lgaOfEnrollment: '$studentInfo.lgaOfEnrollment',
-                    class: '$class',
-                    month: '$month',
-                    year: '$year',
-                    amount: '$amount',
-                    paymentStatus: '$paymentStatus',
-                    date: '$date'
-                }
-            },
-            { $sort: { date: -1 } },  // Sort by date descending
-            { $skip: (page - 1) * limit },
-            { $limit: parseInt(limit) }
-        ]);
+        console.log
+            (basket, req.query)
+        const totalPayments = await Payment.countDocuments();
 
-        const totalPayments = await Payment.countDocuments(query);  // Get total count for pagination
+        console.log(totalPayments)
+        const getAllPaymentsRecords = await Payment.find(basket).skip((pageNumber - 1) * limitNumber).limit(limitNumber).select('-__v -_id -lockStatus -date -updatedAt').collation({ locale: "en", strength: 2 }).lean();
 
         return res.status(200).json({
-            payments,
-            totalPayments,
-            totalPages: Math.ceil(totalPayments / limit),
-            currentPage: page,
-            message: "aggregation successful"
+            getAllPaymentsRecords, totalPayments
         });
     } catch (error) {
         console.error('Error fetching payments:', error);
@@ -171,6 +152,55 @@ export const getTotalStudentsPaidMonthly = async (req, res, next) => {
         res.status(500).json({ message: 'Error fetching data' });
     }
 };
+
+export const getPaymentsByLGA = async (req, res, next) => {
+    try {
+        const pipeline = [
+            {
+                $addFields: {
+                    amountAsNumber: { $toDouble: "$amount" }, // Convert string amount to number
+                },
+            },
+            {
+                $group: {
+                    _id: { $toLower: '$LGA' }, // Group by LGA
+                    totalAmount: { $sum: "$amountAsNumber" }, // Sum the converted amount
+                },
+            },
+            {
+                $sort: { totalAmount: -1 }, // Sort LGAs by total amount in descending order
+            },
+        ];
+
+        console.log("Pipeline executed");
+        const paymentByLGA = await Payment.aggregate(pipeline);
+        console.log(paymentByLGA)
+        res.status(200).json({ paymentByLGA });
+    } catch (error) {
+        console.error("Error fetching payments by LGA:", error);
+        return next(error);
+    }
+};
+export const getTotalStudentPaid = async (req, res, next) => {
+    try {
+        const pipeline = [
+            {
+                $group: {
+                    _id: '$studentRandomId', // Group by LGA
+                },
+            },
+        ];
+
+        console.log("Pipeline executed");
+        const totalStudentPaid = await Payment.aggregate(pipeline);
+        res.status(200).json({ totalStudentPaid });
+    } catch (error) {
+        console.error("Error fetching payments by LGA:", error);
+        return next(error);
+    }
+};
+
+
 
 
 

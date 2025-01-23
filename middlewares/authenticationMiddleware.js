@@ -81,7 +81,7 @@ export const authMiddleware = async (req, res, next) => {
 export const authorizePermission = (requiredPermissions) => {
     return (req, res, next) => {
         const user = req.user;
-
+        
 
         if (!user || !user.permissions || user.permissions.length === 0) {
             return res.status(StatusCodes.FORBIDDEN).json({ message: 'User does not have any permissions' });
@@ -91,7 +91,7 @@ export const authorizePermission = (requiredPermissions) => {
         if (!Array.isArray(requiredPermissions)) {
             requiredPermissions = [requiredPermissions];
         }
-
+ 
         // Check if user has at least one required permission
         const hasPermission = requiredPermissions.some((permission) =>
             user.permissions.includes(permission)

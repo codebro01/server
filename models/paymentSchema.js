@@ -6,14 +6,27 @@ const PaymentSchema = new Schema({
         type: String,
         required: true,
     },
-    studentId : {
-        type: Schema.Types.ObjectId,
-        ref: 'Student'
+    firstname: {
+        type: String,
     },
-
+    surname: {
+        type: String,
+    },
+    middlename: {
+        type: String,
+    },
+    paymentType: {
+        type: String,
+    },
+    totalAttendanceScore: {
+        type: Number,
+    },
     enumeratorId: {
         type: String,
         required: true,
+    },
+    attdWeek: {
+        type: Number
     },
 
     class: { type: String },
@@ -25,37 +38,52 @@ const PaymentSchema = new Schema({
         type: Number,
         required: true,
     },
-    AttendanceScore: {
-        type: String,
-        required: true
+    totalAttendanceScore: {
+        type: Number,
+
     },
-    status: {
+    bankName: {
         type: String,
+
+    },
+    accountNumber: {
+        type: Number,
+
+    },
+    schoolName: {
+        type: String,
+
+    },
+    ward: {
+        type: String,
+
+    },
+    LGA: {
+        type: String,
+
     },
     date: {
         type: Date,
         default: Date.now,
     },
-    paymentType: {
-        type: String,
+    weekNumber: {
+        type: Number
     },
-
     amount: {
         type: String,
     },
     paymentStatus: {
         type: String
     },
-    bankName: {
-        type: String
-    },
-    accountNumber: {
-        type: String
-    },
-    accountBvn: {
-        type: String
-    },
+    lockStatus: {
+        type: Boolean,
+        default: false
+    }
+
+
 }, { timestamps: true });
+
+PaymentSchema.index({ date: 1 });
 
 export const Payment = model('Payment', PaymentSchema);
 

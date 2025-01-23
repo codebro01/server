@@ -124,7 +124,7 @@ app.use('/api/v1/student', authMiddleware, studentsRouter)
 app.use('/api/v1/all-schools', allSchoolsRouter)
 app.use('/api/v1/schools', schoolsRouter)
 app.use('/api/v1/wards', wards);
-app.use('/api/v1/payment', paymentRouter);
+app.use('/api/v1/payments', paymentRouter);
 
 
 // app.get("*", (req, res) => {

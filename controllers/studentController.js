@@ -1,17 +1,22 @@
-import { Student, Permissions, Registrar, PayrollSpecialist } from '../models/index.js'
+import { Student, Permissions, Registrar, PayrollSpecialist, Attendance, Payment } from '../models/index.js'
 import { PROCESSING, StatusCodes } from 'http-status-codes'
 import { BadRequestError, NotFoundError, NotAuthenticatedError } from "../errors/index.js";
 import { addLogToUser } from "../utils/index.js";
 import XLSX from 'xlsx';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, parse } from 'path';
 import path from 'path';
 import fs, { copyFileSync } from 'fs';
 import { Readable } from 'stream';
 import { generateStudentsRandomId } from '../utils/index.js';
-import { Attendance } from '../models/index.js';
 import mongoose from 'mongoose';
 import { MongoClient } from 'mongodb';
+
+
+
+
+
+const { ObjectId } = mongoose.Types;
 
 
 const client = new MongoClient(process.env.MONGO_URI);
@@ -535,39 +540,6 @@ export const filterEnumeratorsByStudents = async (req, res, next) => {
 
 export const totalStudentsByEnumerators = async (req, res, next) => {
     try {
-        // const pipeline = [
-        //     // Step 1: Group by enumerator ID and count students
-        //     {
-        //         $group: {
-        //             _id: "$createdBy", // Group by the enumerator's ID
-        //             totalStudents: { $sum: 1 } // Count the students
-        //         }
-        //     },
-        //     // Step 2: Lookup enumerator details from the enumerators collection
-        //     {
-        //         $lookup: {
-        //             from: "registrars", // The name of the enumerators collection
-        //             localField: "_id", // The field from the previous stage (_id = createdAt)
-        //             foreignField: "_id", // The field in the enumerators collection (_id)
-        //             as: "enumeratorDetails" // The output array field
-        //         }
-        //     },
-        //     // Step 3: Unwind the enumeratorDetails array (optional, if one-to-one mapping)
-        //     {
-        //         $unwind: "$enumeratorDetails"
-        //     },
-        //     // Step 4: Format the output
-        //     {
-        //         $project: {
-        //             _id: 0, // Exclude the `_id` field if not needed
-        //             enumeratorId: "$_id", // Include the enumerator ID
-        //             totalStudents: 1, // Include the total count of students
-        //             "enumeratorDetails.randomId": 1, // Include enumerator `_id`
-        //             "enumeratorDetails.fullName": 1, // Include enumerator name
-        //             "enumeratorDetails.email": 1 // Include enumerator email                
-        //             }
-        //     }
-        // ]
 
         const pipeline = [
             // Step 1: Lookup enumerator details from the registrars collection
@@ -774,11 +746,12 @@ export const uploadAttendanceSheet = async (req, res, next) => {
 export const getStudentsAttendance = async (req, res, next) => {
     try {
         const { userID, permissions } = req.user;
-        const { year, month, schoolId, ward, lgaOfEnrollment, presentClass } = req.query;
+        const { year, month, school, ward, lgaOfEnrollment, presentClass, week, schoolId, paymentType, percentage, dateFrom, dateTo } = req.query;
+
 
         // Filter conditions
         let basket = {};
-
+        let createdBy;
         // if (!permissions.includes('handle_registrars')) {
         //     basket.enumeratorId = userID;
         // }
@@ -793,19 +766,21 @@ export const getStudentsAttendance = async (req, res, next) => {
 
         if (year) basket.year = parseInt(year, 10);; // Ensure year is numeric
         if (month) basket.month = parseInt(month, 10);; // Ensure week is numeric
-        if (schoolId) basket.schoolId = schoolId;; // Ensure month is numeric
+        if (school) basket.schoolId = school;; // Ensure month is numeric
         if (presentClass) basket.presentClass = presentClass;
         if (ward) basket.ward = ward;
+        if (week) basket.attdWeek = week;
         if (lgaOfEnrollment) basket.lgaOfEnrollment = lgaOfEnrollment;
 
-        console.log(basket)
-
+        console.log('parsed dateFrom:', new Date(dateFrom));
+        console.log('parsed dateTo:', new Date(new Date(dateTo).setHours(23, 59, 59, 999)));
         // console.log('getting query and url');
 
         // console.log(req.query)
         // console.log(req.url)
+        let attendance;
 
-        const attendance = await Attendance.aggregate([
+        attendance = await Attendance.aggregate([
 
             {
                 $lookup: {
@@ -834,20 +809,21 @@ export const getStudentsAttendance = async (req, res, next) => {
                     preserveNullAndEmptyArrays: true, // Keep student data even if no school match
                 },
             },
-            ...(ward || lgaOfEnrollment || presentClass || schoolId || month || year
-                ? [
-                    {
-                        $match: {
-                            ...(ward && { 'studentDetails.ward': ward }),
-                            ...(lgaOfEnrollment && { 'studentDetails.lgaOfEnrollment': lgaOfEnrollment }),
-                            ...(presentClass && { 'studentDetails.presentClass': presentClass }),
-                            ...(schoolId && { 'schoolDetails.schoolId': schoolId }),
-                            ...(month && { month }),
-                            ...(year && { year }),
-                        },
-                    },
-                ]
-                : []),
+
+            {
+                $match: {
+                    'enumeratorId': userID, // Replace with the registrar's ID or identifier
+                    ...(week && { attdWeek: Number(week) }), // Corrected from 'attWeek'
+                    ...(ward && { 'studentDetails.ward': ward }),
+                    ...(lgaOfEnrollment && { 'studentDetails.lgaOfEnrollment': lgaOfEnrollment }),
+                    ...(presentClass && { 'studentDetails.presentClass': presentClass }),
+                    ...(school && { 'studentDetails.schoolId': new ObjectId(school) }),
+                    ...(month && { month: Number(month) }),
+                    ...(year && { year: Number(year) }),
+
+                },
+            },
+
             {
                 $project: {
                     _id: 0, // Exclude MongoDB's `_id`
@@ -876,21 +852,135 @@ export const getStudentsAttendance = async (req, res, next) => {
             },
         ]);
 
-        if (attendance.length < 1) return next(new NotFoundError("No record found"))
+        if (permissions.includes('handle_payments')) {
+            // const findStudent = await Student.find({ schoolId });
+            // console.log('foundStudent', findStudent);
+            attendance = await Attendance.aggregate([
+
+                {
+                    $lookup: {
+                        from: 'students', // Collection name for Student schema
+                        localField: 'studentRandomId', // Field in Attendance
+                        foreignField: 'randomId', // Field in Student schema
+                        as: 'studentDetails', // Output field for joined data
+                    },
+                },
+                {
+                    $unwind: {
+                        path: '$studentDetails', // Flatten joined data
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'allschools', // Collection name for School schema
+                        localField: 'studentDetails.schoolId', // Field in Student schema
+                        foreignField: '_id', // Field in School schema
+                        as: 'schoolDetails', // Output field for joined data
+                    },
+                },
+                {
+                    $unwind: {
+                        path: '$schoolDetails', // Flatten joined school data
+                        preserveNullAndEmptyArrays: true, // Keep student data even if no school match
+                    },
+                },
+
+                {
+                    $group: {
+                        _id: "$studentRandomId", // Group by student
+                        studentDetails: { $first: "$studentDetails" }, // Preserve student details
+                        schoolDetails: { $first: "$schoolDetails" }, // Preserve school details
+                        studentRandomId: { $first: "$studentRandomId" },
+                        createdAt: {$first: "$createdAt"},
+                        // AttendanceScore: {$first: "$AttendanceScore"},
+                        totalAttendanceScore: { $sum: "$AttendanceScore" }, // Sum of AttendanceScore
+                        totalWeeks: { $count: {} }, // Count the number of records (weeks)
+                    },
+                },
+             
+                {
+                    $addFields: {
+                        totalPossibleMarks: { $multiply: ["$totalWeeks", 25] }, // Assuming 25 marks per week
+                        attendancePercentage: {
+                            $multiply: [
+                                { $divide: ["$totalAttendanceScore", { $multiply: ["$totalWeeks", 25] }] },
+                                100,
+                            ],
+                        },
+                        date: '$createdAt'
+                    },
+                },
+                {
+                    $match: {
+                        ...(dateFrom || dateTo) ? {
+                            date: {
+                                ...(dateFrom) ? { $gte: new Date(dateFrom) } : {},
+                                ...(dateTo) ? { $lte: new Date(new Date(dateTo).setHours(23, 59, 59, 999)) } : {},
+                            }
+                        } : {}, // Default case when neither dateFrom nor dateTo is provided
+                        ...(ward && { 'studentDetails.ward': ward }),
+                        ...(lgaOfEnrollment && { 'studentDetails.lgaOfEnrollment': lgaOfEnrollment }),
+                        ...(presentClass && { 'studentDetails.presentClass': presentClass }),
+                        ...(schoolId && { 'studentDetails.schoolId': new ObjectId(schoolId) }),
+                        ...(month && { month: Number(month) }),
+                        ...(year && { year: Number(year) }),
+                        ...(percentage && { totalAttendanceScore: { $gte: parseInt(percentage) } })
+
+
+                    },
+                },
+
+                {
+                    $project: {
+                        _id: 0, // Exclude MongoDB's `_id`
+                        date: 1,
+                        year: 1,
+                        month: 1,
+                        createdAt: 1,
+                        class: 1,
+                        studentRandomId: 1,
+                        AttendanceScore: 1,
+                        'studentDetails.surname': 1,
+                        'studentDetails.firstname': 1,
+                        'studentDetails.middlename': 1,
+                        'studentDetails.ward': 1,
+                        'studentDetails.lgaOfEnrollment': 1,
+                        'studentDetails.presentClass': 1,
+                        'studentDetails.state': 1,
+                        'studentDetails.accountNumber': 1,
+                        'studentDetails.bankName': 1,
+                        'schoolDetails.schoolName': 1,
+                        'schoolDetails._id': 1,
+                        'studentDetails.presentClass': 1,
+                        totalAttendanceScore: 1,
+                        totalWeeks: 1,
+                        totalPossibleMarks: 1,
+                        attendancePercentage: { $round: ["$attendancePercentage", 2] },
+                    },
+                },
+                {
+                    $sort: { createdAt: -1 }, // Sort by createdAt in descending order
+                },
+            ]);
+        }
+
+        console.log(attendance)
+        if (attendance.length < 1) return next(new NotFoundError("No record found"));
+
+
 
 
         if (permissions.includes('handle_students') && permissions.length === 1) {
-
+            console.log('hello entered here')
             return res.status(200).json({ attendance });
         }
         else {
-
 
             // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
             const aggregatedData = attendance.reduce((acc, curr) => {
-                const { studentRandomId, AttendanceScore, month, year, studentDetails, schoolDetails } = curr;
+                const { studentRandomId, totalAttendanceScore, month, year, studentDetails, schoolDetails, attendancePercentage } = curr;
 
                 const key = `${studentRandomId}-${month}-${year}`;
                 if (!acc[key]) {
@@ -898,7 +988,8 @@ export const getStudentsAttendance = async (req, res, next) => {
                         studentRandomId,
                         month,
                         year,
-                        totalAttendanceScore: 0,
+                        totalAttendanceScore,
+                        attendancePercentage,
                         surname: studentDetails.surname,
                         firstname: studentDetails.firstname,
                         ward: studentDetails.ward,
@@ -911,35 +1002,34 @@ export const getStudentsAttendance = async (req, res, next) => {
                     };
                 }
 
-                acc[key].totalAttendanceScore += parseInt(AttendanceScore, 10); // Sum attendance scores
+                // acc[key].totalAttendanceScore += parseInt(AttendanceScore, 10); // Sum attendance scores
                 return acc;
             }, {});
-            // const formattedData = mergedData.map(student => {
-            //     const row = {};
-            //     headers.forEach(header => {
-            //         // Populate fields like _id, schoolId, ward, createdBy with actual readable data
-            //         if (header === 'S/N') {
-            //             row[header] = count++; // Ensure _id is a string
-            //         } else if (header === 'createdBy' && student[header]) {
-            //             row[header] = student[header].fullName || ''; // Assuming 'name' is a field in the 'createdBy' collection
-            //         } else if (student[header] && header === 'schoolId') {
-            //             row[header] = student[header].schoolCode || ''; // Assuming 'name' is a field in the 'createdBy' collection
-            //         } else if (student[header] && header === 'randomId') {
-            //             // student[header] && header === 'studentId';
-            //             row['studentId'] = student[header] || ''; // Assuming 'name' is a field in the 'createdBy' collection
-            //         } else if (header === 'schoolName') {
-            //             // student[header] && header === 'studentId';
-            //             row[header] = student.schoolId?.schoolName || '';
-            //         }
 
-            //         else {
-            //             row[header] = student[header] || ''; // Handle regular fields
-            //         }
-            //     });
-            //     return row;
-            // });
+            // console.log(attendance);
 
-            // Create a workbook and worksheet
+    
+            const checkPaymentType = (paymentType) => {
+                switch (paymentType) {
+                    case "Registration":
+                        return { name: "Registration", amount: 15000 };
+                    case "Transition":
+                        return { name: "Transition", amount: 25000 };
+                    case "Registration and Transition":
+                        return { name: "Registration and Transition", amount: 40000 };
+                    case "Second Term":
+                        return { name: "Second Term", amount: 10000 };
+                    case "Third Term":
+                        return { name: "Third Term", amount: 1000 };
+                    default:
+                        return null; // Handle unexpected payment types
+                }
+            };
+
+            const paymentDetails = checkPaymentType(paymentType);
+            console.log(paymentType)
+            console.log(paymentDetails)
+
             const formattedData = Object.values(aggregatedData).map((student, index) => ({
                 'S/N': index + 1, // Add serial number starting from 1
                 StudentID: student.studentRandomId,
@@ -949,13 +1039,15 @@ export const getStudentsAttendance = async (req, res, next) => {
                 Month: student.month,
                 Year: student.year,
                 TotalAttendanceScore: student.totalAttendanceScore,
+                AttendancePercentage: `${student.attendancePercentage}%`,
                 Ward: student.ward,
                 LGA: student.lgaOfEnrollment,
                 Class: student.presentClass,
                 BankName: student.bankName,
                 AccountNumber: student.accountNumber,
                 SchoolName: student.schoolName,
-                amount: "",
+                paymentType: paymentDetails?.name || '',
+                amount: paymentDetails?.amount || '',
                 status: ""
             }));
 
@@ -1012,86 +1104,178 @@ export const getStudentsAttendance = async (req, res, next) => {
 
 export const importPaymentSheet = async (req, res, next) => {
 
-    try {
+    // try {
 
-        const existingData = await fetchExistingData();
+    //     const existingData = await fetchExistingData();
+    //     const { userID } = req.user;
+    //     const { month, year } = req.body;
+
+
+    //     let payment;
+    //     // console.log(req.parsedData)
+
+
+    //     for (const existingRecord of req.parsedData) {
+
+    //         payment = await Payment.find({ studentRandomId: existingRecord.StudentID, month: existingRecord.Month, year: existingRecord.Year, amount: existingRecord.amount});
+
+    //     }
+
+    //     const paymentRecords = [];
+    //     let insertionCount = 0;
+    //     for (const row of req.parsedData) {
+    //         const isExist = await Attendance.findOne({
+    //             studentRandomId: row.StudentId,
+    //             month: month,
+    //             year: year,
+    //         });
+
+    //         if (isExist) {
+    //             // If attendance exists, skip this record
+    //             console.log(`Attendance already exists for Student ID: ${row.StudentId}`);
+    //             continue;
+    //         }
+    //         if (row.Month !== parseInt(month)) return next(new BadRequestError("Month on record is different from the month selected"));
+    //         try {
+    //             if (row.TotalAttendanceScore >= 0 || row.TotalAttendanceScore <= 100  ) {
+    //                 paymentRecords.push({
+
+    //                     studentRandomId: row.StudentID, // First column
+    //                     class: row.Class, // Class
+    //                     totalAttendanceScore: row.TotalAttendanceScore || 0, // Week 1
+    //                     enumeratorId: userID, // From function arguments
+    //                     month: parseInt(row.Month), // From function arguments
+    //                     year: year, // From function arguments
+    //                     amount: row.amount || 0, 
+    //                     firstname : row.Firstname,
+    //                     middlename : row.Middlename,
+    //                     surname : row.Surname,
+    //                     bankName: row.BankName, 
+    //                     accountNumber: Number(row.AccountNumber), 
+    //                     schoolName: row.SchoolName,
+    //                     ward: row.Ward,
+    //                     LGA: row.LGA,
+    //                     paymentStatus:  row.status || 'Not paid'
+    //                 });
+
+    //             }
+
+    //             else {
+    //                 console.log(`'value bigger than 100  or smaller than 0' for : ${row.StudentID}`);
+
+    //             }
+    //         }
+    //         catch (err) {
+    //             return next(err)
+    //         }
+
+
+    //     }
+
+    //     console.log('payment', payment)
+    //     if (paymentRecords.length > 0 && !payment.length) {
+    //         // Insert all new records into MongoDB
+    //         await Payment.insertMany(paymentRecords);
+    //     } else if (paymentRecords.length > 0 && payment.length) {
+    //         const updateCount = payment.length;
+    //         await Payment.updateMany({ studentRandomId: req.parsedData.StudentID, month, year }, { ...paymentRecords }, { new: true, runValidators: true });
+    //         return res.status(200).json({ message: `Payment sheet updated  for ${updateCount} persons`, totalInserted: payment.length });
+
+    //     }
+    //     else {
+    //         return res.status(400).json({ message: 'No new payment records to upload.' });
+    //     }
+    //     const count = paymentRecords.length;
+
+    //     res.status(200).json({ message: `Payment record uploaded  for ${count} persons`, totalInserted: paymentRecords.length });
+    // } catch (error) {
+    //     return next(error);
+    // }
+
+    try {
         const { userID } = req.user;
         const { month, year } = req.body;
 
+        const paymentRecords = [];
+        const bulkOperations = [];
 
-        let attendance;
-
-        for (const existingStudents of req.parsedData) {
-
-            attendance = await Attendance.find({ studentRandomId: existingStudents.StudentId, attdWeek: week, month, year });
-
-        }
-
-
-        const minLength = 20;
-        const maxLength = 25;
-
-        const attendanceRecords = [];
-        let insertionCount = 0;
         for (const row of req.parsedData) {
-            const isExist = await Attendance.findOne({
-                studentRandomId: row.StudentId,
-                month: month,
-                year: year,
-                attdWeek: week,
+            if (row.Month !== parseInt(month)) {
+                return next(new BadRequestError("Month on record is different from the month selected"));
+            }
+
+            if (row.TotalAttendanceScore < 0 || row.TotalAttendanceScore > 100) {
+                console.log(`Invalid score for Student ID: ${row.StudentID}`);
+                continue;
+            }
+
+            paymentRecords.push({
+                studentRandomId: row.StudentID,
+                class: row.Class,
+                totalAttendanceScore: row.TotalAttendanceScore || 0,
+                enumeratorId: userID,
+                month: parseInt(row.Month),
+                year,
+                amount: row.amount || 0,
+                firstname: row.Firstname,
+                middlename: row.Middlename,
+                surname: row.Surname,
+                bankName: row.BankName,
+                accountNumber: Number(row.AccountNumber),
+                schoolName: row.SchoolName,
+                ward: row.Ward,
+                LGA: row.LGA,
+                paymentStatus: row.status || 'not paid',
             });
 
-            // if (isExist) {
-            //     // If attendance exists, skip this record
-            //     console.log(`Attendance already exists for Student ID: ${row.StudentId}`);
-            //     continue;
-            // }
-            try {
-                if (row.AttendanceScore === 0 || row.AttendanceScore === existingData.data[0].min || row.AttendanceScore === existingData.data[0].max || (row.AttendanceScore >= existingData.data[0].min && row.AttendanceScore <= existingData.data[0].max)) {
-                    attendanceRecords.push({
-                        studentRandomId: row.StudentId, // First column
-                        class: row.Class || '', // Class
-                        AttendanceScore: row.AttendanceScore || 0, // Week 1
-                        enumeratorId: userID, // From function arguments
-                        month: month, // From function arguments
-                        year: year, // From function arguments
-                        attdWeek: week,
-                    });
-
-                }
-
-                else {
-                    console.log(`'value bigger smaller than 20  or greater than 25' for : ${row.StudentId}`);
-
-                }
-            }
-            catch (err) {
-                return next(err)
-            }
-
-
+            // Prepare bulk update operations
+            bulkOperations.push({
+                updateOne: {
+                    filter: {
+                        studentRandomId: row.StudentID,
+                        month: parseInt(row.Month),
+                        year,
+                    },
+                    update: {
+                        $set: {
+                            class: row.Class,
+                            totalAttendanceScore: row.TotalAttendanceScore || 0,
+                            amount: row.amount || 0,
+                            firstname: row.Firstname,
+                            middlename: row.Middlename,
+                            surname: row.Surname,
+                            bankName: row.BankName,
+                            accountNumber: Number(row.AccountNumber),
+                            schoolName: row.SchoolName,
+                            ward: row.Ward,
+                            LGA: row.LGA,
+                            paymentType: row.paymentType,
+                            paymentStatus: row.status || 'Not paid',
+                            totalAttendanceScore: parseInt(row.totalAttendanceScore)
+                        },
+                    },
+                    upsert: true, // Insert if no matching document
+                },
+            });
         }
 
-        // console.log(attendanceRecords)
-        // console.log(attendance.length)
-        if (attendanceRecords.length > 0 && !attendance.length) {
-            // Insert all new records into MongoDB
-            await Attendance.insertMany(attendanceRecords);
-        } else if (attendanceRecords.length > 0 && attendance.length) {
-            const updateCount = attendance.length;
-            await Attendance.updateMany({ randomId: req.parsedData.StudentId, week, month, year }, { ...attendanceRecords }, { new: true, runValidators: true });
-            return res.status(200).json({ message: `Attendance sheet updated  for ${updateCount} persons`, totalInserted: attendanceRecords.length });
 
+        if (bulkOperations.length > 0) {
+            // Perform bulk write
+            const result = await Payment.bulkWrite(bulkOperations);
+            console.log(result.upsertedCount, result.modifiedCount)
+            return res.status(200).json({
+                message: `Payment records processed: new records for  ${result.upsertedCount} and modified for ${result.modifiedCount}`,
+                insertedCount: result.upsertedCount,
+                modifiedCount: result.modifiedCount,
+            });
+        } else {
+            return res.status(400).json({ message: 'No valid payment records to process.' });
         }
-        else {
-            return res.status(400).json({ message: 'No new attendance records to upload.' });
-        }
-        const count = attendanceRecords.length;
-
-        res.status(200).json({ message: `Attendance sheet uploaded  for ${count} persons`, totalInserted: attendanceRecords.length });
     } catch (error) {
         return next(error);
     }
+
 
 
 }
