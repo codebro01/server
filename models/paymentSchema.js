@@ -21,6 +21,10 @@ const PaymentSchema = new Schema({
     totalAttendanceScore: {
         type: Number,
     },
+    attendancePercentage: {
+        type: String,
+    },
+    
     enumeratorId: {
         type: String,
         required: true,
@@ -70,7 +74,7 @@ const PaymentSchema = new Schema({
         type: Number
     },
     amount: {
-        type: String,
+        type: Number,
     },
     paymentStatus: {
         type: String

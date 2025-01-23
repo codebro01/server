@@ -152,6 +152,36 @@ export const getStudentsStats = async (req, res, next) => {
                             $count: "totalDistinctSchools", // Count unique schools
                         },
                     ],
+                    distinctSchoolsDetails: [
+                        {
+                            $lookup: {
+                                from: 'allschools',
+                                localField: 'schoolId',
+                                foreignField: '_id',
+                                as: 'schoolDetails'
+                            }
+                        },
+                        {
+                            $unwind: {
+                                path: "$schoolDetails",
+                                preserveNullAndEmptyArrays: true
+                            }
+                        },
+                        {
+                            $group: {
+                                _id: "$schoolId",
+                                schoolDetails: { $first: "$schoolDetails" } // Get the first (and only) school detail for each schoolId
+                            }
+                        },
+                        {
+                            $project: {
+                                _id: 0, // Remove the _id field
+                                schoolId: "$_id", // Rename _id to schoolId
+                                schoolName: "$schoolDetails.schoolName",
+                                schoolId: "$schoolDetails._id"
+                            }
+                        }
+                    ]
                 },
             },
         ];
@@ -238,15 +268,6 @@ export const getStudentsStats = async (req, res, next) => {
         console.log(err)
         return next(err)
     }
-
-
-
-
-
-
-
-
-
 }
 
 export const filterAndDownload = async (req, res, next) => {
@@ -746,16 +767,17 @@ export const uploadAttendanceSheet = async (req, res, next) => {
 export const getStudentsAttendance = async (req, res, next) => {
     try {
         const { userID, permissions } = req.user;
-        const { year, month, school, ward, lgaOfEnrollment, presentClass, week, schoolId, paymentType, percentage, dateFrom, dateTo } = req.query;
+        let { year, month, school, ward, lgaOfEnrollment, presentClass, week, schoolId, paymentType, percentage, dateFrom, dateTo } = req.query;
 
-
+        // lgaOfEnrollment = lgaOfEnrollment.toLowerCase();
+        // ward = ward.toLowerCase();
         // Filter conditions
         let basket = {};
         let createdBy;
         // if (!permissions.includes('handle_registrars')) {
         //     basket.enumeratorId = userID;
         // }
-        console.log(userID)
+        console.log(req.query)
         if (permissions.includes('handle_students') && permissions.length === 1) {
             basket = { createdBy: userID };
         }
@@ -891,13 +913,15 @@ export const getStudentsAttendance = async (req, res, next) => {
                         studentDetails: { $first: "$studentDetails" }, // Preserve student details
                         schoolDetails: { $first: "$schoolDetails" }, // Preserve school details
                         studentRandomId: { $first: "$studentRandomId" },
-                        createdAt: {$first: "$createdAt"},
+                        createdAt: { $first: "$createdAt" },
+                        month: {$first: "$month"},
+                        year: {$first: "$year"},
                         // AttendanceScore: {$first: "$AttendanceScore"},
                         totalAttendanceScore: { $sum: "$AttendanceScore" }, // Sum of AttendanceScore
                         totalWeeks: { $count: {} }, // Count the number of records (weeks)
                     },
                 },
-             
+
                 {
                     $addFields: {
                         totalPossibleMarks: { $multiply: ["$totalWeeks", 25] }, // Assuming 25 marks per week
@@ -912,21 +936,19 @@ export const getStudentsAttendance = async (req, res, next) => {
                 },
                 {
                     $match: {
+                        ...(month && { month: Number(month) }),
+                        ...(year && { year: Number(year) }),
+                        ...(ward && { 'studentDetails.ward': { $regex: new RegExp(ward, 'i') } }),
+                        ...(lgaOfEnrollment && { 'studentDetails.lgaOfEnrollment': { $regex: new RegExp(lgaOfEnrollment, 'i') } }),
+                        ...(presentClass && { 'studentDetails.presentClass': presentClass }),
+                        ...(schoolId && { 'studentDetails.schoolId': new ObjectId(schoolId) }),
+                        ...(percentage && { totalAttendanceScore: { $gte: parseInt(percentage) } }),
                         ...(dateFrom || dateTo) ? {
                             date: {
                                 ...(dateFrom) ? { $gte: new Date(dateFrom) } : {},
                                 ...(dateTo) ? { $lte: new Date(new Date(dateTo).setHours(23, 59, 59, 999)) } : {},
                             }
-                        } : {}, // Default case when neither dateFrom nor dateTo is provided
-                        ...(ward && { 'studentDetails.ward': ward }),
-                        ...(lgaOfEnrollment && { 'studentDetails.lgaOfEnrollment': lgaOfEnrollment }),
-                        ...(presentClass && { 'studentDetails.presentClass': presentClass }),
-                        ...(schoolId && { 'studentDetails.schoolId': new ObjectId(schoolId) }),
-                        ...(month && { month: Number(month) }),
-                        ...(year && { year: Number(year) }),
-                        ...(percentage && { totalAttendanceScore: { $gte: parseInt(percentage) } })
-
-
+                        } : {},
                     },
                 },
 
@@ -964,7 +986,8 @@ export const getStudentsAttendance = async (req, res, next) => {
             ]);
         }
 
-        console.log(attendance)
+        console.log('attendance',attendance)
+        console.log(Number(month), Number(year))
         if (attendance.length < 1) return next(new NotFoundError("No record found"));
 
 
@@ -1008,7 +1031,7 @@ export const getStudentsAttendance = async (req, res, next) => {
 
             // console.log(attendance);
 
-    
+
             const checkPaymentType = (paymentType) => {
                 switch (paymentType) {
                     case "Registration":
@@ -1020,7 +1043,7 @@ export const getStudentsAttendance = async (req, res, next) => {
                     case "Second Term":
                         return { name: "Second Term", amount: 10000 };
                     case "Third Term":
-                        return { name: "Third Term", amount: 1000 };
+                        return { name: "Third Term", amount: 10000 };
                     default:
                         return null; // Handle unexpected payment types
                 }
@@ -1199,12 +1222,16 @@ export const importPaymentSheet = async (req, res, next) => {
         const paymentRecords = [];
         const bulkOperations = [];
 
+        console.log(req.parsedData);
+
         for (const row of req.parsedData) {
+
+            
             if (row.Month !== parseInt(month)) {
                 return next(new BadRequestError("Month on record is different from the month selected"));
             }
 
-            if (row.TotalAttendanceScore < 0 || row.TotalAttendanceScore > 100) {
+            if (parseInt(row.TotalAttendanceScore) < 0 || parseInt(row.TotalAttendanceScore) > 100) {
                 console.log(`Invalid score for Student ID: ${row.StudentID}`);
                 continue;
             }
@@ -1212,7 +1239,7 @@ export const importPaymentSheet = async (req, res, next) => {
             paymentRecords.push({
                 studentRandomId: row.StudentID,
                 class: row.Class,
-                totalAttendanceScore: row.TotalAttendanceScore || 0,
+                totalAttendanceScore: parseInt(row.TotalAttendanceScore) || 0,
                 enumeratorId: userID,
                 month: parseInt(row.Month),
                 year,
@@ -1234,12 +1261,12 @@ export const importPaymentSheet = async (req, res, next) => {
                     filter: {
                         studentRandomId: row.StudentID,
                         month: parseInt(row.Month),
-                        year,
+                        year: parseInt(row.Year),
                     },
                     update: {
                         $set: {
                             class: row.Class,
-                            totalAttendanceScore: row.TotalAttendanceScore || 0,
+                            totalAttendanceScore: parseInt(row.TotalAttendanceScore) || 0,
                             amount: row.amount || 0,
                             firstname: row.Firstname,
                             middlename: row.Middlename,
@@ -1251,7 +1278,8 @@ export const importPaymentSheet = async (req, res, next) => {
                             LGA: row.LGA,
                             paymentType: row.paymentType,
                             paymentStatus: row.status || 'Not paid',
-                            totalAttendanceScore: parseInt(row.totalAttendanceScore)
+                            totalAttendanceScore: parseInt(row.TotalAttendanceScore),
+                            attendancePercentage: row.AttendancePercentage
                         },
                     },
                     upsert: true, // Insert if no matching document
