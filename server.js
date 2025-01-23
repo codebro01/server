@@ -46,6 +46,8 @@ const allowedOrigins = [
     'https://enrollment.kogiagile.org',
     'https://www.enrollment.kogiagile.org',
     'https://www.portal.kogiagile.org',
+    'https://cct.kogiagile.org',
+    'https://www.cct.kogiagile.org',
     'www.portal.kogiagile.org',
     'https://www.cct.kogiagile.org',
     'https://reactbuildapp.onrender.com',
