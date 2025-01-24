@@ -21,7 +21,7 @@ router.route('/:id').patch(authMiddleware, authorizePermission('handle_students'
 }, updateStudent);
 router.get('/download', authMiddleware, authorizePermission('handle_admins'), filterAndDownload)
 router.get('/get-students-stats', authMiddleware, authorizePermission(['handle_registrars', 'handle_payments']), getStudentsStats)
-router.get('/admin-view-all-students', authMiddleware, authorizePermission(['handle_payments', 'handle_admins', 'handle_students'] ), filterAndView)
+router.get('/admin-view-all-students', authMiddleware, authorizePermission(['handle_payments', 'handle_admins', 'handle_students']), filterAndView)
 router.get('/view-attendance-sheet', authMiddleware, authorizePermission(['handle_admins', 'handle_payments', 'handle_students']), getStudentsAttendance)
 router.get('/attendance-sheet', authMiddleware, authorizePermission('handle_students'), downloadAttendanceSheet);
 router.post('/upload-attendance-sheet', uploadXLSX.single('file'), XLSXUploader, authorizePermission('handle_students'), uploadAttendanceSheet);

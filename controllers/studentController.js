@@ -1414,9 +1414,42 @@ export const updateStudent = async (req, res, next) => {
 };
 
 export const getDuplicateRecord = async (req, res, next) => {
-    // try {
 
-    //     console.log(req.query)
+
+    try {
+
+        const duplicates = await Student.aggregate([
+            {
+                $group: {
+                    _id: {
+                        surname: "$surname",
+                        firstname: "$firstname",
+                        lgaofEnrollment: "$lgaofEnrollment",
+                        schoolId: "$schoolId"
+                    },
+                    similarRecords: { $push: "$$ROOT" }, // Collect all matching records
+                    count: { $sum: 1 }, // Count occurrences
+                },
+            },
+            // Step 2: Filter groups where count > 1 (potential duplicates)
+            {
+                $match: { count: { $gt: 1 } },
+            },
+        ]);
+
+        const students = duplicates;
+    
+        return res.status(200).json({ students });
+    }
+    catch(err) {
+        console.log(err)
+        return next(err)
+    }
+
+
+
+
+    // try {
 
     //     const {
     //         surname,
@@ -1426,62 +1459,29 @@ export const getDuplicateRecord = async (req, res, next) => {
     //         schoolId,
     //         presentClass,
     //         parentPhone,
-    //     } = req.body;
+    //     } = req.query;
 
-    //     // Build the query array with $regex for partial matching
-    //     const query = [];
+    //     if ((!surname && !firstname && !middlename) && (!lgaOfEnrollment && !schoolId && !presentClass && !parentPhone)) return next(new BadRequestError('Please Apply at least one filter to avoid pulling unneccessary large data from the DB'))
+    //     // Build the query object with $regex for partial matching
+    //     const query = {};
 
-    //     if (surname) query.push({ surname: { $regex: surname, $options: "i" } });
-    //     if (firstname) query.push({ firstname: { $regex: firstname, $options: "i" } });
-    //     if (middlename) query.push({ middlename: { $regex: middlename, $options: "i" } });
-    //     if (lgaOfEnrollment) query.push({ lgaOfEnrollment: { $regex: lgaOfEnrollment, $options: "i" } });
-    //     if (schoolId) query.push({ schoolId: { $regex: schoolId, $options: "i" } });
-    //     if (presentClass) query.push({ presentClass: { $regex: presentClass, $options: "i" } });
-    //     if (parentPhone) query.push({ parentPhone: { $regex: parentPhone, $options: "i" } });
+    //     if (surname) query.surname = { $regex: surname, $options: "i" };
+    //     if (firstname) query.firstname = { $regex: firstname, $options: "i" };
+    //     if (middlename) query.middlename = { $regex: middlename, $options: "i" };
+    //     if (lgaOfEnrollment) query.lgaOfEnrollment = lgaOfEnrollment;
+    //     if (schoolId) query.schoolId = new mongoose.Types.ObjectId(schoolId);
+    //     if (presentClass) query.presentClass = { $regex: presentClass, $options: "i" };
+    //     if (parentPhone) query.parentPhone = { $regex: parentPhone, $options: "i" };
 
-    //     // Use $or if there are query conditions
-    //     const students = await Student.find(query.length ? { $or: query } : {});
+    //     // Query the database
+    //     console.log(query);
+    //     const students = await Student.find(query).populate('schoolId');
+    //     if (!students) return next(new BadRequestError("An error occured, getting duplicate data, please try again!!! "))
 
-    //     return res.status(200).json({ students })
-
+    //     return res.status(200).json({ students });
+    // } catch (err) {
+    //     return next(err);
     // }
-    // catch (err) {
-    //     return next(err)
-    // }
-
-    try {
-
-        const {
-            surname,
-            firstname,
-            middlename,
-            lgaOfEnrollment,
-            schoolId,
-            presentClass,
-            parentPhone,
-        } = req.query;
-
-        if ((!surname && !firstname && !middlename) && (!lgaOfEnrollment && !schoolId && !presentClass && !parentPhone)) return next(new BadRequestError('Please Apply at least one filter to avoid pulling unneccessary large data from the DB'))
-        // Build the query object with $regex for partial matching
-        const query = {};
-
-        if (surname) query.surname = { $regex: surname, $options: "i" };
-        if (firstname) query.firstname = { $regex: firstname, $options: "i" };
-        if (middlename) query.middlename = { $regex: middlename, $options: "i" };
-        if (lgaOfEnrollment) query.lgaOfEnrollment = { $regex: lgaOfEnrollment, $options: "i" };
-        if (schoolId) query.schoolId = new mongoose.Types.ObjectId(schoolId);
-        if (presentClass) query.presentClass = { $regex: presentClass, $options: "i" };
-        if (parentPhone) query.parentPhone = { $regex: parentPhone, $options: "i" };
-
-        // Query the database
-        console.log(query);
-        const students = await Student.find(query).populate('schoolId');
-        if (!students) return next(new BadRequestError("An error occured, getting duplicate data, please try again!!! "))
-
-        return res.status(200).json({ students });
-    } catch (err) {
-        return next(err);
-    }
 
 
 

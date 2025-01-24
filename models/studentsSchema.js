@@ -107,7 +107,6 @@ const StudentSchema = new mongoose.Schema({
     },
     parentNin: {
         type: String,
-  
     },
     parentBvn: {
         type: String,
@@ -129,7 +128,7 @@ const StudentSchema = new mongoose.Schema({
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Registrars",
-        required: [true, "School cannot be empty"]
+        required: [true, "CreatedBy cannot be empty"]
 
     },
     isActive: {
