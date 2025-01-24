@@ -156,7 +156,6 @@ export const viewPayments = async (req, res, next) => {
         if (presentClass) matchStage.class = presentClass;  // Filter by class
         if (amount) matchStage.amount = parseInt(amount);  // Filter by amount
 
-        console.log(amount)
         // Handle date range filters
         if (dateFrom || dateTo) {
             matchStage.createdAt = {};
@@ -219,7 +218,6 @@ export const viewPayments = async (req, res, next) => {
 
         const result = await Payment.aggregate(pipeline).collation({ locale: "en", strength: 2 });
 
-        // console.log(result)
 
         const metadata = result[0]?.metadata[0] || { totalPayments: 0 };
         const data = result[0]?.data || [];
@@ -298,9 +296,7 @@ export const getPaymentsByLGA = async (req, res, next) => {
             },
         ];
 
-        console.log("Pipeline executed");
         const paymentByLGA = await Payment.aggregate(pipeline);
-        console.log(paymentByLGA)
         res.status(200).json({ paymentByLGA });
     } catch (error) {
         console.error("Error fetching payments by LGA:", error);
@@ -317,7 +313,6 @@ export const getTotalStudentPaid = async (req, res, next) => {
             },
         ];
 
-        console.log("Pipeline executed");
         const totalStudentPaid = await Payment.aggregate(pipeline);
         res.status(200).json({ totalStudentPaid });
     } catch (error) {

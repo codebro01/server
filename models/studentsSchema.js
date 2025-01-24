@@ -145,7 +145,7 @@ const StudentSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-StudentSchema.index({ ward: 1, lga: 1, presentClass: 1 });
+StudentSchema.index({ randomId : 1, ward: 1, lga: 1, presentClass: 1 });
 
 
 StudentSchema.pre('save', function (next) {
