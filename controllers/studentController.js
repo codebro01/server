@@ -634,8 +634,8 @@ export const downloadAttendanceSheet = async (req, res, next) => {
             "S/N": count++,
             StudentId: student.randomId,
             Surname: student.surname || '',
-            'Middlename': student.middlename || '',
             'Firstname': student.firstname || '',
+            'Middlename': student.middlename || '',
             Class: student.presentClass || "",
             'Attendance Score': '',
         }));
