@@ -11,6 +11,7 @@ import { Readable } from 'stream';
 import { generateStudentsRandomId } from '../utils/index.js';
 import mongoose from 'mongoose';
 import { MongoClient } from 'mongodb';
+import { AllSchools } from '../models/index.js';
 
 
 
@@ -880,7 +881,7 @@ export const getStudentsAttendance = async (req, res, next) => {
                 $sort: { createdAt: -1 }, // Sort by createdAt in descending order
             },
         ]);
-       
+
         if (permissions.includes('handle_payments') || permissions.includes('handle_registrars')) {
             // const findStudent = await Student.find({ schoolId });
             // console.log('foundStudent', findStudent);
@@ -1056,7 +1057,7 @@ export const getStudentsAttendance = async (req, res, next) => {
             };
 
             const paymentDetails = checkPaymentType(paymentType);
- 
+
 
             const formattedData = Object.values(aggregatedData).map((student, index) => ({
                 'S/N': index + 1, // Add serial number starting from 1
@@ -1351,19 +1352,47 @@ export const deleteStudent = async (req, res, next) => {
         const { id } = req.params;
         const student = await Student.findOne({ randomId: id });
 
+
         if (!student) return next(new NotFoundError('There is no student with id: ' + id));
 
         const deletedStudent = await Student.findOneAndDelete({ randomId: id });
 
         if (!deletedStudent) return next(new Error('An Error occurred while trying to delete student'));
-
-        // Fetch the current list of all students again after deletion
-        const remainingStudents = await Student.find({});
-        res.status(StatusCodes.OK).json({ remainingStudents });
+        console.log('student deleted');
+        res.status(StatusCodes.OK).json({ message: 'student deleted' });
     } catch (error) {
         return next(error);
     }
 };
+
+export const deleteManyStudents = async (req, res, next) => {
+    try {
+        const { ids } = req.query; // Access the query parameter
+        const selectedStudents = ids.split(','); // Convert to array
+
+        if (!selectedStudents || !selectedStudents.length) {
+            return res
+                .status(StatusCodes.BAD_REQUEST)
+                .json({ message: 'No students selected for deletion.' });
+        }
+
+        const deletedStudents = await Student.deleteMany({
+            randomId: { $in: selectedStudents },
+        });
+
+        if (deletedStudents.deletedCount === 0) {
+            return next(new NotFoundError('No students found for deletion.'));
+        }
+
+        res.status(StatusCodes.OK).json({
+            message: `${deletedStudents.deletedCount} students deleted successfully.`,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 
 
 export const updateStudent = async (req, res, next) => {
@@ -1418,30 +1447,114 @@ export const getDuplicateRecord = async (req, res, next) => {
 
     try {
 
+
+
+        // const duplicates = await Student.aggregate([
+        //     // Step 1: Lookup school details from the allschools collection
+        //     {
+        //         $lookup: {
+        //             from: "allschools", // Collection name of allschools
+        //             localField: "schoolId", // Field in the Student collection
+        //             foreignField: "_id", // Field in the allschools collection
+        //             as: "schoolDetails", // Name of the resulting field
+        //         },
+        //     },
+        //     // Step 2: Extract the schoolName from the schoolDetails
+        //     {
+        //         $addFields: {
+        //             schoolName: { $arrayElemAt: ["$schoolDetails.schoolName", 0] }, // Add schoolName
+        //         },
+        //     },
+        //     // Step 3: Group by student fields
+        //     {
+        //         $group: {
+        //             _id: {
+        //                 surname: "$surname",
+        //                 firstname: "$firstname",
+
+        //                 lgaofEnrollment: "$lgaofEnrollment",
+        //                 schoolId: "$schoolId",
+        //             },
+        //             similarRecords: { $push: { surname: "$surname", middlename: "$middlename", parentPhone: "$parentPhone", presentClass: "presentClass", firstname: "$firstname", schoolId: "$schoolName", lgaOfEnrollment: "$lgaOfEnrollment" } }, // Collect relevant fields only
+        //             count: { $sum: 1 },
+        //         },
+        //     },
+        //     // Step 4: Match groups with duplicates
+        //     {
+        //         $match: { count: { $gt: 1 } },
+        //     },
+        //     // Step 5: Final clean-up (optional)
+        //     {
+        //         $project: {
+        //             "similarRecords.schoolDetails": 0, // Exclude schoolDetails array if accidentally carried over
+        //         },
+        //     },
+        // ]);
+
         const duplicates = await Student.aggregate([
+            // Step 1: Lookup school details from the allschools collection
+            {
+                $addFields: {
+                    schoolId: { $toObjectId: "$schoolId" } // Convert string to ObjectId
+                }
+            },
+            {
+                $lookup: {
+                    from: "allschools", // Collection name of allschools
+                    localField: "schoolId", // Field in the Student collection
+                    foreignField: "_id", // Field in the allschools collection
+                    as: "schoolDetails", // Name of the resulting field
+                },
+            },
+            // Step 2: Extract the schoolName from the schoolDetails
+            {
+                $addFields: {
+                    schoolName: { $arrayElemAt: ["$schoolDetails.schoolName", 0] }, // Add schoolName
+                },
+            },
+            // Step 3: Group by student fields
             {
                 $group: {
                     _id: {
                         surname: "$surname",
                         firstname: "$firstname",
                         lgaofEnrollment: "$lgaofEnrollment",
-                        schoolId: "$schoolId"
+                        schoolId: "$schoolId",
                     },
-                    similarRecords: { $push: "$$ROOT" }, // Collect all matching records
-                    count: { $sum: 1 }, // Count occurrences
+                    similarRecords: {
+                        $push: {
+                            randomId: "$randomId",
+                            surname: "$surname",
+                            middlename: "$middlename",
+                            parentPhone: "$parentPhone",
+                            presentClass: "$presentClass",
+                            firstname: "$firstname",
+                            schoolId: "$schoolId", // Preserve schoolId here
+                            schoolName: "$schoolName", // Add schoolName to the group
+                            lgaOfEnrollment: "$lgaOfEnrollment",
+                        },
+                    }, // Collect relevant fields only
+                    count: { $sum: 1 }, // Count duplicates
                 },
             },
-            // Step 2: Filter groups where count > 1 (potential duplicates)
+            // Step 4: Match groups with duplicates
             {
                 $match: { count: { $gt: 1 } },
             },
+            // Step 5: Final clean-up (optional)
+            {
+                $project: {
+                    "similarRecords.schoolDetails": 0, // Exclude schoolDetails array if accidentally carried over
+                },
+            },
         ]);
 
+
         const students = duplicates;
-    
+
         return res.status(200).json({ students });
     }
-    catch(err) {
+    catch (err) {
         console.log(err)
         return next(err)
     }

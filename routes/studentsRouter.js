@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllStudents, importPaymentSheet, filterAndView, filterAndDownload, updateStudent, filterEnumeratorsByStudents, deleteStudent, createStudent, downloadAttendanceSheet, enumeratorsByyHighestRegisteredStudents, lgasByHighestRegisteredStudents, uploadAttendanceSheet, getStudentsAttendance, getStudentsStats, totalStudentsByEnumerators, getDuplicateRecord } from '../controllers/index.js';
+import { getAllStudents, importPaymentSheet, filterAndView, filterAndDownload, updateStudent, filterEnumeratorsByStudents, deleteStudent, createStudent, downloadAttendanceSheet, enumeratorsByyHighestRegisteredStudents, lgasByHighestRegisteredStudents, uploadAttendanceSheet, getStudentsAttendance, getStudentsStats, totalStudentsByEnumerators, getDuplicateRecord, deleteManyStudents } from '../controllers/index.js';
 import { authMiddleware, authorizePermission } from '../middlewares/authenticationMiddleware.js';
 import { upload, uploadXLSX } from '../config/multer.js';
 import { cloudinaryImageUploader } from '../utils/cloudinaryImageUploader.js';
@@ -19,7 +19,8 @@ router.route('/:id').patch(authMiddleware, authorizePermission('handle_students'
     }
     next();
 }, updateStudent);
-router.get('/download', authMiddleware, authorizePermission('handle_admins'), filterAndDownload)
+router.delete('/delete/delete-many/', authMiddleware, authorizePermission('handle_admins'), deleteManyStudents)
+router.get('/download', authMiddleware, authorizePermission('handle_registrars'), filterAndDownload)
 router.get('/get-students-stats', authMiddleware, authorizePermission(['handle_registrars', 'handle_payments']), getStudentsStats)
 router.get('/admin-view-all-students', authMiddleware, authorizePermission(['handle_payments', 'handle_admins', 'handle_students']), filterAndView)
 router.get('/view-attendance-sheet', authMiddleware, authorizePermission(['handle_admins', 'handle_payments', 'handle_students']), getStudentsAttendance)
