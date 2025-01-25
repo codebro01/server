@@ -89,11 +89,13 @@ export const enumeratorsByyHighestRegisteredStudents = async (req, res, next) =>
                 $project: {
                     _id: 1, // Include enumerator ID
                     totalStudents: 1, // Include total students count
-                    enumeratorName: { $arrayElemAt: ["$enumeratorDetails.name", 0] }, // Get the enumerator's name
+                    enumeratorName: { $arrayElemAt: ["$enumeratorDetails.fullName", 0] }, // Get the enumerator's name
                     enumeratorId: { $arrayElemAt: ["$enumeratorDetails._id", 0] }, // Get the enumerator's ID
                 },
             },
         ]);
+
+    console.log(topEnumerators)
 
         return res.status(200).json(topEnumerators)
 
