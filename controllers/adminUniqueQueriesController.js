@@ -95,7 +95,6 @@ export const enumeratorsByyHighestRegisteredStudents = async (req, res, next) =>
             },
         ]);
 
-    console.log(topEnumerators)
 
         return res.status(200).json(topEnumerators)
 

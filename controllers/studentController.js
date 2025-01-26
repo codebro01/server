@@ -101,7 +101,11 @@ export const getAllStudents = async (req, res, next) => {
 
 
 
-        const students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lgaOfEnrollment presentClass ward bankName yearOfEnrollment passport ').skip(skip).limit(Number(limit)).lean();
+        let students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lga lgaOfEnrollment presentClass ward bankName yearOfEnrollment passport studentNin gender nationality communityName parentName parentPhone parentNin parentBvn bankName accountNumber parentOccupation residentialAddress').skip(skip).limit(Number(limit)).lean();
+
+        if(permissions.includes('handle_admins')) {
+            students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lga lgaOfEnrollment presentClass ward bankName yearOfEnrollment passport src').skip(skip).limit(Number(limit)).lean(); 
+        }
 
         return res.status(StatusCodes.OK).json({ students, total });
     }
@@ -615,12 +619,22 @@ export const totalStudentsByEnumerators = async (req, res, next) => {
 
 export const downloadAttendanceSheet = async (req, res, next) => {
     try {
-        const { userID } = req.user;
+        const { userID, permissions } = req.user;
         const currentUser = await Registrar.findOne({ _id: userID });
-        const filterBasket = { createdBy: userID };
-        const { schoolId } = req.query;
+        const { schoolId, createdBy } = req.query;
+        console.log(req.user)
+
+        let filterBasket;
+
+        if(permissions.includes('handle_admins')) {
+            filterBasket = {}
+        }
+        else {
+            filterBasket = { createdBy: userID }
+        }
 
         if (schoolId) filterBasket.schoolId = schoolId;
+        if(createdBy) filterBasket.createdBy = createdBy;
 
         const students = await Student.find(filterBasket).populate('schoolId').populate("ward");
 
@@ -628,17 +642,27 @@ export const downloadAttendanceSheet = async (req, res, next) => {
             return next(new NotFoundError(`We can't find students registered by you in this particular school`));
         }
         // Prepare data for the sheet
+        const toUpperCaseStrings = (obj) => {
+            return Object.fromEntries(
+                Object.entries(obj).map(([key, value]) => [
+                    key,
+                    key === 'StudentId' ? value : typeof value === 'string' ? value.toUpperCase() : value
+                ])
+            );
+        };
         let count = 1;
         const schoolName = students[0]?.schoolId?.schoolName || 'Unknown School';
-        const formattedData = students.map(student => ({
-            "S/N": count++,
-            StudentId: student.randomId,
-            Surname: student.surname || '',
-            'Firstname': student.firstname || '',
-            'Middlename': student.middlename || '',
-            Class: student.presentClass || "",
-            'Attendance Score': '',
-        }));
+        const formattedData = students.map(student => 
+            toUpperCaseStrings({
+                "S/N": count++,
+                StudentId: student.randomId,
+                Surname: student.surname || '',
+                'Firstname': student.firstname || '',
+                'Middlename': student.middlename || '',
+                Class: student.presentClass || "",
+                'Attendance Score': '',
+            })
+        );
 
         // Create the sheet with headers
         const rows = [
@@ -1058,27 +1082,38 @@ export const getStudentsAttendance = async (req, res, next) => {
 
             const paymentDetails = checkPaymentType(paymentType);
 
+            const toUpperCaseStrings = (obj) => {
+                return Object.fromEntries(
+                    Object.entries(obj).map(([key, value]) => [
+                        key,
+                        key === 'StudentID' ? value : typeof value === 'string' ? value.toUpperCase() : value
+                    ])
+                );
+            };
 
-            const formattedData = Object.values(aggregatedData).map((student, index) => ({
-                'S/N': index + 1, // Add serial number starting from 1
-                StudentID: student.studentRandomId,
-                Surname: student.surname,
-                Firstname: student.firstname,
-                Middlename: student.middlename || '', // Include middlename, default to empty string if missing
-                Month: student.month,
-                Year: student.year,
-                TotalAttendanceScore: student.totalAttendanceScore,
-                AttendancePercentage: `${student.attendancePercentage}%`,
-                Ward: student.ward,
-                LGA: student.lgaOfEnrollment,
-                Class: student.presentClass,
-                BankName: student.bankName,
-                AccountNumber: student.accountNumber,
-                SchoolName: student.schoolName,
-                paymentType: paymentDetails?.name || '',
-                amount: paymentDetails?.amount || '',
-                status: ""
-            }));
+
+            const formattedData = Object.values(aggregatedData).map((student, index) => 
+                toUpperCaseStrings({
+                    'S/N': index + 1, // Add serial number starting from 1
+                    StudentID: student.studentRandomId,
+                    Surname: student.surname,
+                    Firstname: student.firstname,
+                    Middlename: student.middlename || '', // Include middlename, default to empty string if missing
+                    Month: student.month,
+                    Year: student.year,
+                    TotalAttendanceScore: student.totalAttendanceScore,
+                    AttendancePercentage: `${student.attendancePercentage}%`,
+                    Ward: student.ward,
+                    LGA: student.lgaOfEnrollment,
+                    Class: student.presentClass,
+                    BankName: student.bankName,
+                    AccountNumber: student.accountNumber,
+                    SchoolName: student.schoolName,
+                    paymentType: paymentDetails?.name || '',
+                    amount: paymentDetails?.amount || '',
+                    status: ""
+                })
+        );
 
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.json_to_sheet([]); // Start with an empty worksheet
@@ -1532,6 +1567,7 @@ export const getDuplicateRecord = async (req, res, next) => {
                             schoolId: "$schoolId", // Preserve schoolId here
                             schoolName: "$schoolName", // Add schoolName to the group
                             lgaOfEnrollment: "$lgaOfEnrollment",
+                            passport: "$passport"
                         },
                     }, // Collect relevant fields only
                     count: { $sum: 1 }, // Count duplicates
