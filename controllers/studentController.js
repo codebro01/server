@@ -730,8 +730,8 @@ export const uploadAttendanceSheet = async (req, res, next) => {
         }
 
 
-        const minLength = 20;
-        const maxLength = 25;
+        const minScore = 0;
+        const maxScore = 100;
 
         const attendanceRecords = [];
         let insertionCount = 0;
@@ -749,7 +749,7 @@ export const uploadAttendanceSheet = async (req, res, next) => {
             //     continue;
             // }
             try {
-                if (row.AttendanceScore === 0 || row.AttendanceScore === existingData.data[0].min || row.AttendanceScore === existingData.data[0].max || (row.AttendanceScore >= existingData.data[0].min && row.AttendanceScore <= existingData.data[0].max)) {
+                if (row.AttendanceScore === 0 || row.AttendanceScore === minScore || row.AttendanceScore === maxScore|| (row.AttendanceScore >= minScore && row.AttendanceScore <= maxScore)) {
                     attendanceRecords.push({
                         studentRandomId: row.StudentId, // First column
                         class: row.Class || '', // Class
