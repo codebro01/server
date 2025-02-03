@@ -12,6 +12,7 @@ export const checkPermissions = (requiredPermissions) => {
             });
 
             // If no user found, return an error
+            
             if (!user) {
                 return res.status(401).json({ message: 'User does not exist' });
             }

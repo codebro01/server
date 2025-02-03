@@ -1080,6 +1080,26 @@ export const getStudentsAttendance = async (req, res, next) => {
                 }
             };
 
+            const monthOptions = [
+                { name: 'January', value: 1 },
+                { name: 'February', value: 2 },
+                { name: 'March', value: 3 },
+                { name: 'April', value: 4 },
+                { name: 'May', value: 5 },
+                { name: 'June', value: 6 },
+                { name: 'July', value: 7 },
+                { name: 'August', value: 8 },
+                { name: 'September', value: 9 },
+                { name: 'October', value: 10 },
+                { name: 'November', value: 11 },
+                { name: 'December', value: 12 },
+            ];
+
+            const getMonthName = (inputedMonth) => {
+                const monthValue = monthOptions.find(month => month.value === inputedMonth);
+                return monthValue.name;
+            }
+
             const paymentDetails = checkPaymentType(paymentType);
 
             const toUpperCaseStrings = (obj) => {
@@ -1095,25 +1115,26 @@ export const getStudentsAttendance = async (req, res, next) => {
             const formattedData = Object.values(aggregatedData).map((student, index) => 
                 toUpperCaseStrings({
                     'S/N': index + 1, // Add serial number starting from 1
+                    SchoolName: student.schoolName,
                     StudentID: student.studentRandomId,
                     Surname: student.surname,
                     Firstname: student.firstname,
                     Middlename: student.middlename || '', // Include middlename, default to empty string if missing
-                    Month: student.month,
+                    Month: getMonthName(student.month),
                     Year: student.year,
                     TotalAttendanceScore: student.totalAttendanceScore,
-                    AttendancePercentage: `${student.attendancePercentage}%`,
+                    // AttendancePercentage: `${student.attendancePercentage}%`,
                     Ward: student.ward,
                     LGA: student.lgaOfEnrollment,
                     Class: student.presentClass,
                     BankName: student.bankName,
                     AccountNumber: student.accountNumber,
-                    SchoolName: student.schoolName,
-                    paymentType: paymentDetails?.name || '',
-                    amount: paymentDetails?.amount || '',
+                    // paymentType: paymentDetails?.name || '',
+                    amount: '',
                     status: ""
                 })
         );
+                console.log(getMonthName(1))
 
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.json_to_sheet([]); // Start with an empty worksheet
@@ -1258,23 +1279,47 @@ export const importPaymentSheet = async (req, res, next) => {
 
     try {
         const { userID } = req.user;
-        const { month, year } = req.body;
+        const { month, year, paymentType } = req.body;
 
         const paymentRecords = [];
         const bulkOperations = [];
 
-
+    console.log(req.body)
         for (const row of req.parsedData) {
 
+            const monthOptions = [
+                { name: 'January', value: 1 },
+                { name: 'February', value: 2 },
+                { name: 'March', value: 3 },
+                { name: 'April', value: 4 },
+                { name: 'May', value: 5 },
+                { name: 'June', value: 6 },
+                { name: 'July', value: 7 },
+                { name: 'August', value: 8 },
+                { name: 'September', value: 9 },
+                { name: 'October', value: 10 },
+                { name: 'November', value: 11 },
+                { name: 'December', value: 12 },
+            ];
 
-            if (row.Month !== parseInt(month)) {
-                return next(new BadRequestError("Month on record is different from the month selected"));
+
+            const getMonthValue = (inputedMonth) => {
+                const monthName = monthOptions.find(month => month.name.toUpperCase() === inputedMonth);
+                console.log(monthName)
+                return monthName.value;
             }
+
+
+            // if (getMonthValue(row.Month) !== parseInt(month)) {
+            //     return next(new BadRequestError("Month on record is different from the month selected"));
+            // }
 
             if (parseInt(row.TotalAttendanceScore) < 0 || parseInt(row.TotalAttendanceScore) > 100) {
                 console.log(`Invalid score for Student ID: ${row.StudentID}`);
                 continue;
             }
+
+            
 
             paymentRecords.push({
                 studentRandomId: row.StudentID,
@@ -1295,12 +1340,17 @@ export const importPaymentSheet = async (req, res, next) => {
                 paymentStatus: row.status || 'not paid',
             });
 
+    
+
+
+      
+
             // Prepare bulk update operations
             bulkOperations.push({
                 updateOne: {
                     filter: {
                         studentRandomId: row.StudentID,
-                        month: parseInt(row.Month),
+                        month: month,
                         year: parseInt(row.Year),
                     },
                     update: {
@@ -1316,7 +1366,7 @@ export const importPaymentSheet = async (req, res, next) => {
                             schoolName: row.SchoolName,
                             ward: row.Ward,
                             LGA: row.LGA,
-                            paymentType: row.paymentType,
+                            paymentType: paymentType,
                             paymentStatus: row.status || 'Not paid',
                             totalAttendanceScore: parseInt(row.TotalAttendanceScore),
                             attendancePercentage: row.AttendancePercentage
