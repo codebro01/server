@@ -801,7 +801,9 @@ export const getStudentsAttendance = async (req, res, next) => {
     try {
         const { userID, permissions } = req.user;
         let { year, month, school, ward, lgaOfEnrollment, presentClass, week, schoolId, paymentType, percentage, dateFrom, dateTo } = req.query;
-
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 200;
+        const skip = (page - 1) * limit;
         // lgaOfEnrollment = lgaOfEnrollment.toLowerCase();
         // ward = ward.toLowerCase();
         // Filter conditions
@@ -903,6 +905,21 @@ export const getStudentsAttendance = async (req, res, next) => {
             },
             {
                 $sort: { createdAt: -1 }, // Sort by createdAt in descending order
+            },
+            {
+                $facet: {
+                    metadata: [{ $count: 'total' }],  // Count total documents
+                    data: [{ $skip: skip }, { $limit: limit }],  // Paginate results
+                },
+            },
+            {
+                $unwind: '$metadata',
+            },
+            {
+                $project: {
+                    total: '$metadata.total',
+                    data: 1,
+                },
             },
         ]);
 
@@ -1025,7 +1042,6 @@ export const getStudentsAttendance = async (req, res, next) => {
 
 
         if (permissions.includes('handle_students') && permissions.length === 1) {
-            console.log('hello entered here')
             return res.status(200).json({ attendance });
         }
         else {
