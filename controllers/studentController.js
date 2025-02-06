@@ -816,6 +816,7 @@ export const getStudentsAttendance = async (req, res, next) => {
             basket = { createdBy: userID };
         }
 
+
         else {
             basket = {};
         }
@@ -835,6 +836,8 @@ export const getStudentsAttendance = async (req, res, next) => {
         // console.log(req.query)
         // console.log(req.url)
         let attendance;
+
+
 
         attendance = await Attendance.aggregate([
 
@@ -923,6 +926,7 @@ export const getStudentsAttendance = async (req, res, next) => {
             },
         ]);
 
+
         if (permissions.includes('handle_payments') || permissions.includes('handle_registrars')) {
             // const findStudent = await Student.find({ schoolId });
             // console.log('foundStudent', findStudent);
@@ -956,32 +960,68 @@ export const getStudentsAttendance = async (req, res, next) => {
                     },
                 },
 
+                // {
+                //     $group: {
+                //         _id: "$studentRandomId", // Group by student
+                //         studentDetails: { $first: "$studentDetails" }, // Preserve student details
+                //         schoolDetails: { $first: "$schoolDetails" }, // Preserve school details
+                //         studentRandomId: { $first: "$studentRandomId" },
+                //         createdAt: { $first: "$createdAt" },
+                //         month: { $first: "$month" },
+                //         year: { $first: "$year" },
+                //         // AttendanceScore: {$first: "$AttendanceScore"},
+                //         totalAttendanceScore: { $sum: "$AttendanceScore" }, // Sum of AttendanceScore
+                //         totalWeeks: { $count: {} }, // Count the number of records (weeks)
+                //     },
+                // },
+
+                // {
+                //     $addFields: {
+                //         totalPossibleMarks: { $multiply: ["$totalWeeks", 25] }, // Assuming 25 marks per week
+                //         attendancePercentage: {
+                //             $multiply: [
+                //                 { $divide: ["$totalAttendanceScore", { $multiply: ["$totalWeeks", 25] }] },
+                //                 100,
+                //             ],
+                //         },
+                //         date: '$createdAt'
+                //     },
+                // },
+
                 {
                     $group: {
-                        _id: "$studentRandomId", // Group by student
-                        studentDetails: { $first: "$studentDetails" }, // Preserve student details
-                        schoolDetails: { $first: "$schoolDetails" }, // Preserve school details
+                        _id: {
+                            student: "$studentRandomId",
+                            month: "$month",
+                            year: "$year"
+                        }, // Group by student and month-year
+                        studentDetails: { $first: "$studentDetails" },
+                        schoolDetails: { $first: "$schoolDetails" },
                         studentRandomId: { $first: "$studentRandomId" },
                         createdAt: { $first: "$createdAt" },
                         month: { $first: "$month" },
                         year: { $first: "$year" },
-                        // AttendanceScore: {$first: "$AttendanceScore"},
-                        totalAttendanceScore: { $sum: "$AttendanceScore" }, // Sum of AttendanceScore
-                        totalWeeks: { $count: {} }, // Count the number of records (weeks)
-                    },
+                        totalAttendanceScore: { $sum: "$AttendanceScore" }, // Sum attendance score for the month
+                        totalWeeks: { $sum: 1 }, // Count records (weeks)
+                    }
                 },
-
                 {
                     $addFields: {
                         totalPossibleMarks: { $multiply: ["$totalWeeks", 25] }, // Assuming 25 marks per week
                         attendancePercentage: {
                             $multiply: [
-                                { $divide: ["$totalAttendanceScore", { $multiply: ["$totalWeeks", 25] }] },
-                                100,
-                            ],
+                                {
+                                    $cond: [
+                                        { $eq: ["$totalPossibleMarks", 0] },
+                                        0,
+                                        { $divide: ["$totalAttendanceScore", "$totalPossibleMarks"] }
+                                    ]
+                                },
+                                100
+                            ]
                         },
-                        date: '$createdAt'
-                    },
+                        date: "$createdAt"
+                    }
                 },
                 {
                     $match: {
@@ -1047,7 +1087,6 @@ export const getStudentsAttendance = async (req, res, next) => {
         else {
 
             // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 
             const aggregatedData = attendance.reduce((acc, curr) => {
                 const { studentRandomId, totalAttendanceScore, month, year, studentDetails, schoolDetails, attendancePercentage } = curr;
@@ -1150,7 +1189,6 @@ export const getStudentsAttendance = async (req, res, next) => {
                     status: ""
                 })
         );
-                console.log(getMonthName(1))
 
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.json_to_sheet([]); // Start with an empty worksheet

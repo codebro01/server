@@ -16,7 +16,7 @@ const AttendanceSchema = new Schema({
     class: { type: String },
     month: {
         type: Number,
-        requireed: true,
+        required: true,
     },
     year: {
         type: Number,
