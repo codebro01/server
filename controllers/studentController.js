@@ -103,8 +103,8 @@ export const getAllStudents = async (req, res, next) => {
 
         let students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lga lgaOfEnrollment presentClass ward bankName yearOfEnrollment passport studentNin gender nationality communityName parentName parentPhone parentNin parentBvn bankName accountNumber parentOccupation residentialAddress').skip(skip).limit(Number(limit)).lean();
 
-        if(permissions.includes('handle_admins')) {
-            students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lga lgaOfEnrollment presentClass ward bankName yearOfEnrollment passport src').skip(skip).limit(Number(limit)).lean(); 
+        if (permissions.includes('handle_admins')) {
+            students = await Student.find(basket).populate('schoolId').sort('-updatedAt').collation({ locale: "en", strength: 2 }).select('randomId schoolId surname firstname middlename dob stateOfOrigin lga lgaOfEnrollment presentClass ward bankName yearOfEnrollment passport src').skip(skip).limit(Number(limit)).lean();
         }
 
         return res.status(StatusCodes.OK).json({ students, total });
@@ -626,7 +626,7 @@ export const downloadAttendanceSheet = async (req, res, next) => {
 
         let filterBasket;
 
-        if(permissions.includes('handle_admins')) {
+        if (permissions.includes('handle_admins')) {
             filterBasket = {}
         }
         else {
@@ -634,7 +634,7 @@ export const downloadAttendanceSheet = async (req, res, next) => {
         }
 
         if (schoolId) filterBasket.schoolId = schoolId;
-        if(createdBy) filterBasket.createdBy = createdBy;
+        if (createdBy) filterBasket.createdBy = createdBy;
 
         const students = await Student.find(filterBasket).populate('schoolId').populate("ward");
 
@@ -652,7 +652,7 @@ export const downloadAttendanceSheet = async (req, res, next) => {
         };
         let count = 1;
         const schoolName = students[0]?.schoolId?.schoolName || 'Unknown School';
-        const formattedData = students.map(student => 
+        const formattedData = students.map(student =>
             toUpperCaseStrings({
                 "S/N": count++,
                 StudentId: student.randomId,
@@ -749,7 +749,7 @@ export const uploadAttendanceSheet = async (req, res, next) => {
             //     continue;
             // }
             try {
-                if (row.AttendanceScore === 0 || row.AttendanceScore === minScore || row.AttendanceScore === maxScore|| (row.AttendanceScore >= minScore && row.AttendanceScore <= maxScore)) {
+                if (row.AttendanceScore === 0 || row.AttendanceScore === minScore || row.AttendanceScore === maxScore || (row.AttendanceScore >= minScore && row.AttendanceScore <= maxScore)) {
                     attendanceRecords.push({
                         studentRandomId: row.StudentId, // First column
                         class: row.Class || '', // Class
@@ -1167,7 +1167,7 @@ export const getStudentsAttendance = async (req, res, next) => {
             };
 
 
-            const formattedData = Object.values(aggregatedData).map((student, index) => 
+            const formattedData = Object.values(aggregatedData).map((student, index) =>
                 toUpperCaseStrings({
                     'S/N': index + 1, // Add serial number starting from 1
                     SchoolName: student.schoolName,
@@ -1188,7 +1188,7 @@ export const getStudentsAttendance = async (req, res, next) => {
                     amount: '',
                     status: ""
                 })
-        );
+            );
 
             const workbook = XLSX.utils.book_new();
             const worksheet = XLSX.utils.json_to_sheet([]); // Start with an empty worksheet
@@ -1338,7 +1338,7 @@ export const importPaymentSheet = async (req, res, next) => {
         const paymentRecords = [];
         const bulkOperations = [];
 
-    console.log(req.body)
+        console.log(req.body)
         for (const row of req.parsedData) {
 
             const monthOptions = [
@@ -1373,7 +1373,7 @@ export const importPaymentSheet = async (req, res, next) => {
                 continue;
             }
 
-            
+
 
             paymentRecords.push({
                 studentRandomId: row.StudentID,
@@ -1394,10 +1394,10 @@ export const importPaymentSheet = async (req, res, next) => {
                 paymentStatus: row.status || 'not paid',
             });
 
-    
 
 
-      
+
+
 
             // Prepare bulk update operations
             bulkOperations.push({
@@ -1485,7 +1485,6 @@ export const createStudent = async (req, res, next) => {
     }
 }
 
-
 export const deleteStudent = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -1530,9 +1529,6 @@ export const deleteManyStudents = async (req, res, next) => {
         next(error);
     }
 };
-
-
-
 
 export const updateStudent = async (req, res, next) => {
 
@@ -1739,6 +1735,131 @@ export const getDuplicateRecord = async (req, res, next) => {
 
 
 }
+
+export const toggleStudentActiveStatus = async (req, res, next) => {
+    // const { studentRandomId } = req.query;
+    // const studentExist = await Student.findOne({ randomId: studentRamdonId });
+    // if (!studentExist) return next(new NotFoundError('No Student found with the id: ' + studentRandomId));
+    // studentExist.isActive = !studentExist.isActive;
+    // const notPromotedStudent = await Student.save();
+    // if (notPromotedStudent) return next(new BadRequestError('An error occured during the operation'));
+    // const currentStatusMessage = studentExist.isActive === true ? `made ineligible` : 'made eligible';
+    // res.status(200).json({ message: `${studentExist.surname} ${studentExist.firstname} has been ${currentStatusMessage}` });
+}
+
+export const promoteSingleStudent = async (req, res, next) => {
+    // try {
+    //     const { studentRandomId } = req.query;
+    //     const studentExist = await Student.findOne({ randomId: studentRandomId });
+
+    //     if (!studentExist) {
+    //         return next(new NotFoundError('No student found with the ID: ' + studentRandomId));
+    //     }
+
+    //     switch (studentExist.presentClass) {
+    //         case 'Primary 6':
+    //             studentExist.presentClass = 'JSS 1';
+    //             break;
+    //         case 'JSS 1':
+    //             studentExist.presentClass = 'JSS 2';
+    //             studentExist.isActive = false;
+    //             break;
+    //         case 'JSS 2':
+    //             studentExist.presentClass = 'JSS 3';
+    //             break;
+    //         case 'JSS 3':
+    //             studentExist.presentClass = 'SSS 1';
+    //             break;
+    //         case 'SSS 1':
+    //             studentExist.presentClass = 'SSS 2';
+    //             studentExist.isActive = false;
+    //             break;
+    //         default:
+    //             return next(new BadRequestError('Invalid class for promotion'));
+    //     }
+
+    //     await studentExist.save();
+
+    //     const statusMessage = studentExist.isActive ? 'made eligible' : 'made ineligible';
+    //     res.status(200).json({
+    //         message: `${studentExist.surname} ${studentExist.firstname} has been promoted to ${studentExist.presentClass} and is ${statusMessage}`
+    //     });
+
+    // } catch (error) {
+    //     console.log(error);
+    //     next(error);
+    // }
+};
+
+export const promotePlentyStudents = async (req, res, next) => {
+    try {
+        const { presentClass } = req.body;
+        console.log('hello', req.query);
+        if (!presentClass) {
+            return next(new BadRequestError('Invalid class selected for promotion'));
+        }
+
+
+        // const splittedStudentsRandomId = studentsRandomId.split(',');
+        let promotedClass = null;
+
+            switch (studentClass) {
+                case 'Primary 6':
+                    promotedClass = await Student.updateMany(
+                        { presentClass: presentClass},
+                        { presentClass: 'JSS 1' },
+                        { runValidators: true, new: true }
+                    );
+                    res.status(200).json({ message: `All Primary 6 students have been promoted to JSS 1` });
+                    break;
+
+                case 'JSS 1':
+                    promotedClass = await Student.updateMany(
+                        { presentClass},
+                        { presentClass: 'JSS 2', isActive: false },
+                        { runValidators: true, new: true }
+                    );
+                    res.status(200).json({ message: `All JSS 1 students have been promoted to JSS 2` });
+                    break;
+
+                case 'JSS 2':
+                    promotedClass = await Student.updateMany(
+                        { presentClass },
+                        { presentClass: 'JSS 3', isActive: true },
+                        { runValidators: true, new: true }
+                    );
+                    res.status(200).json({ message: `All JSS 2 students have been promoted to JSS 3` });
+                    break;
+
+                case 'JSS 3':
+                    promotedClass = await Student.updateMany(
+                        { presentClass},
+                        { presentClass: 'SSS 1', isActive: true },
+                        { runValidators: true, new: true }
+                    );
+                    res.status(200).json({ message: `All JSS 3 students have been promoted to SSS 1` });
+                    break;
+
+                case 'SSS 1':
+                    promotedClass = await Student.updateMany(
+                        { presentClass},
+                        { presentClass: 'SSS 2', isActive: true },
+                        { runValidators: true, new: true }
+                    );
+                    res.status(200).json({ message: `All SSS 1 students have been promoted to SSS 2` });
+                    break;
+
+                default:
+                    return next(new BadRequestError('Invalid class for promotion.'));
+            }
+        
+
+    } catch (error) {
+        console.error(error);
+        return next(error);
+    }
+};
+
 
 
 
